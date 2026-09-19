@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
+import ServiciosAlumno from '../components/ServiciosAlumno';
 
 const ALUMNO_VACIO = { nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '' };
 
@@ -13,6 +14,7 @@ export default function Alumnos() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [buscado, setBuscado] = useState(false);
+  const [alumnoServicios, setAlumnoServicios] = useState(null);
 
   const cargarAlumnos = async (q = '') => {
     const params = q ? `?q=${encodeURIComponent(q)}` : '';
@@ -192,6 +194,9 @@ export default function Alumnos() {
                 <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
                 <td className="actions">
                   <button className="link" onClick={() => abrirEdicion(a)}>Editar</button>
+                  {a.estado === 'Activo' && (
+                    <button className="link" onClick={() => setAlumnoServicios(a)}>Servicios</button>
+                  )}
                   <button className="link" onClick={() => cambiarEstado(a)}>
                     {a.estado === 'Activo' ? 'Dar de baja' : 'Reactivar'}
                   </button>
@@ -200,6 +205,16 @@ export default function Alumnos() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {alumnoServicios && (
+        <div className="card">
+          <div className="page-header">
+            <h3>Servicios de {alumnoServicios.nombre} {alumnoServicios.apellido}</h3>
+            <button className="secondary" onClick={() => setAlumnoServicios(null)}>Cerrar</button>
+          </div>
+          <ServiciosAlumno key={alumnoServicios.id} alumnoId={alumnoServicios.id} />
+        </div>
       )}
     </div>
   );

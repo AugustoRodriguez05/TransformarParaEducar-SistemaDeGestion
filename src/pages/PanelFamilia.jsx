@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
+import ServiciosAlumno from '../components/ServiciosAlumno';
 
 export default function PanelFamilia() {
   const [hijos, setHijos] = useState([]);
@@ -82,6 +83,11 @@ export default function PanelFamilia() {
               </tbody>
             </table>
           )}
+
+          <h4>Servicios del alumno</h4>
+          {detalle.alumno.estado === 'Activo'
+            ? <ServiciosAlumno key={detalle.alumno.id} alumnoId={detalle.alumno.id} />
+            : <p>El legajo está inactivo: no se pueden gestionar servicios.</p>}
 
           <div className="form-actions">
             {detalle.alumno.inscripto_ciclo_lectivo ? (
