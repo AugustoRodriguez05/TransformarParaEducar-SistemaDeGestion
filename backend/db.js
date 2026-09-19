@@ -80,6 +80,40 @@ export async function initDb() {
       UNIQUE (padre_usuario_id, alumno_id)
     );
 
+    CREATE TABLE IF NOT EXISTS deportes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT UNIQUE NOT NULL,
+      dia TEXT NOT NULL CHECK (dia IN ('Lunes','Martes','Miercoles','Jueves','Viernes')),
+      hora_inicio TEXT NOT NULL,
+      hora_fin TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inscripciones_deportivas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
+      deporte_id INTEGER NOT NULL REFERENCES deportes(id),
+      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja')),
+      UNIQUE (alumno_id, deporte_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS recorridos_transporte (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre TEXT UNIQUE NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS inscripciones_transporte (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
+      recorrido_id INTEGER NOT NULL REFERENCES recorridos_transporte(id),
+      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja'))
+    );
+
+    CREATE TABLE IF NOT EXISTS inscripciones_comedor (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
+      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja'))
+    );
+
     CREATE INDEX IF NOT EXISTS idx_alumnos_dni ON alumnos(dni);
     CREATE INDEX IF NOT EXISTS idx_alumnos_legajo ON alumnos(legajo);
     CREATE INDEX IF NOT EXISTS idx_alumnos_apellido ON alumnos(apellido);
@@ -164,6 +198,30 @@ export async function initDb() {
     );
 
     void adminId;
+  }
+
+  const countDeportes = await db.get('SELECT COUNT(*) as count FROM deportes');
+  if (countDeportes.count === 0) {
+    const deportes = [
+      ['Fútbol', 'Martes', '16:00', '17:30'],
+      ['Vóley', 'Martes', '17:00', '18:30'],
+      ['Básquet', 'Miercoles', '16:00', '17:30'],
+      ['Natación', 'Jueves', '15:00', '16:30'],
+      ['Handball', 'Viernes', '16:00', '17:30']
+    ];
+    for (const d of deportes) {
+      await db.run(
+        'INSERT INTO deportes (nombre, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)',
+        d
+      );
+    }
+  }
+
+  const countRecorridos = await db.get('SELECT COUNT(*) as count FROM recorridos_transporte');
+  if (countRecorridos.count === 0) {
+    for (const nombre of ['Recorrido 1 - Zona Norte', 'Recorrido 2 - Zona Sur', 'Recorrido 3 - Zona Este', 'Recorrido 4 - Zona Oeste']) {
+      await db.run('INSERT INTO recorridos_transporte (nombre) VALUES (?)', nombre);
+    }
   }
 }
 

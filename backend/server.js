@@ -7,6 +7,7 @@ import alumnosRouter from './routes/alumnos.routes.js';
 import profesoresRouter from './routes/profesores.routes.js';
 import familiaRouter from './routes/familia.routes.js';
 import catalogosRouter from './routes/catalogos.routes.js';
+import serviciosRouter from './routes/servicios.routes.js';
 
 const app = express();
 app.use(cors());
@@ -22,6 +23,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/alumnos', alumnosRouter);
 app.use('/api/profesores', profesoresRouter);
 app.use('/api/familia', familiaRouter);
+app.use('/api/servicios', serviciosRouter);
 app.use('/api', catalogosRouter);
 
 const PORT = process.env.PORT || 3002;

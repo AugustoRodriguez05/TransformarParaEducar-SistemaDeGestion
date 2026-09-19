@@ -74,6 +74,49 @@ CREATE TABLE padre_alumno (
     UNIQUE (padre_usuario_id, alumno_id)
 );
 
+-- Requerimiento 02: actividades deportivas
+CREATE TABLE deportes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nombre VARCHAR(100) UNIQUE NOT NULL,
+    dia dia_semana NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    CONSTRAINT chk_horario_deporte CHECK (hora_inicio < hora_fin)
+);
+
+CREATE TYPE estado_inscripcion AS ENUM ('Activa', 'Baja');
+
+CREATE TABLE inscripciones_deportivas (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alumno_id UUID NOT NULL REFERENCES alumnos(id),
+    deporte_id UUID NOT NULL REFERENCES deportes(id),
+    estado estado_inscripcion DEFAULT 'Activa',
+    UNIQUE (alumno_id, deporte_id)
+);
+
+-- Requerimiento 04: transporte y comedor
+CREATE TABLE recorridos_transporte (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nombre VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE inscripciones_transporte (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alumno_id UUID NOT NULL REFERENCES alumnos(id),
+    recorrido_id UUID NOT NULL REFERENCES recorridos_transporte(id),
+    estado estado_inscripcion DEFAULT 'Activa'
+);
+
+CREATE TABLE inscripciones_comedor (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alumno_id UUID NOT NULL REFERENCES alumnos(id),
+    estado estado_inscripcion DEFAULT 'Activa'
+);
+
+-- Una sola inscripción activa por alumno y servicio
+CREATE UNIQUE INDEX uq_transporte_activa ON inscripciones_transporte(alumno_id) WHERE estado = 'Activa';
+CREATE UNIQUE INDEX uq_comedor_activa ON inscripciones_comedor(alumno_id) WHERE estado = 'Activa';
+
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_alumnos_dni ON alumnos(dni);
 CREATE INDEX idx_alumnos_legajo ON alumnos(legajo);
