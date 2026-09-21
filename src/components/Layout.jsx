@@ -4,7 +4,8 @@ import { useAuth } from '../context/useAuth';
 const NAV_POR_ROL = {
   administrador: [
     { to: '/alumnos', label: 'Alumnos' },
-    { to: '/profesores', label: 'Profesores' }
+    { to: '/profesores', label: 'Profesores' },
+    { to: '/reportes', label: 'Reportes' }
   ],
   profesor: [
     { to: '/profesores', label: 'Mis materias' }

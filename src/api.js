@@ -17,6 +17,29 @@ export function clearStoredUser() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+export async function apiDownload(path, nombreArchivo) {
+  const user = getStoredUser();
+  const res = await fetch(path, {
+    headers: user ? { 'x-user-id': user.id, 'x-user-role': user.rol } : {}
+  });
+  if (!res.ok) {
+    let message = `Error ${res.status}`;
+    try {
+      message = (await res.json()).message || message;
+    } catch {
+      // sin cuerpo JSON en la respuesta de error
+    }
+    throw new Error(message);
+  }
+
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombreArchivo;
+  enlace.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function apiFetch(path, options = {}) {
   const user = getStoredUser();
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };

@@ -18,6 +18,14 @@ convención de API REST y de capas).
 | HU3 | Consulta de información académica por parte de los padres |
 | HU4 | Consulta y modificación de legajo de alumnos |
 
+## Alcance — Sprint 2 (Módulo 2)
+
+| HU | Descripción |
+|----|-------------|
+| HU5 | Inscripción de alumnos a actividades deportivas |
+| HU6 | Inscripción a transporte y comedor |
+| HU7 | Reportes por curso y por materia (exportables a PDF y Excel) |
+
 ## Stack
 
 - Frontend: React 19 + Vite, React Router
