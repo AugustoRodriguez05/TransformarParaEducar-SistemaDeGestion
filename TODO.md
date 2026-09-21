@@ -14,3 +14,9 @@
 ## Pendiente (detectado al terminar lo anterior)
 
 - [x] **Deportes y recorridos de transporte**: se administran desde la pantalla "Configuración" (alta, edición y baja). No se borra lo que tiene inscripciones, y no se cambia el horario de un deporte con alumnos inscriptos.
+
+## Mejoras respecto al plan de trabajo
+
+- [ ] **Autenticación simplificada** (`backend/middleware/auth.js`, `src/api.js`): después del login el frontend manda el id del usuario en el header `x-user-id` y el backend confía en él, sin token ni sesión; quien conozca el id de otro usuario podría hacerse pasar por él. Reemplazar por un token firmado (JWT) o una sesión que el backend emita en el login y verifique en cada petición.
+- [ ] **Patrones de diseño del plan** (MVC y Repository): hoy las rutas (`backend/routes/*.js`) mezclan validación, lógica de negocio y consultas SQL. Separar en controladores, servicios/lógica y una capa Repository para el acceso a datos. El Context Provider (`AuthContext`) ya está aplicado.
+- [ ] **Proceso de trabajo del plan**: se trabajó todo sobre `main`. Usar una rama por Historia de Usuario con Pull Request de revisión al cierre de cada sprint, proteger la rama principal y llevar el tablero Kanban en GitHub Projects (issues por tarea, tablero del equipo y uno por integrante).
