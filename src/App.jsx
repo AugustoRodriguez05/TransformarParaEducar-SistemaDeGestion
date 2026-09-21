@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Alumnos from './pages/Alumnos';
 import Profesores from './pages/Profesores';
 import PanelFamilia from './pages/PanelFamilia';
+import Padres from './pages/Padres';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
 import Turnos from './pages/Turnos';
@@ -42,6 +43,14 @@ function App() {
               element={
                 <ProtectedRoute roles={['administrador', 'profesor']}>
                   <Profesores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="padres"
+              element={
+                <ProtectedRoute roles={['administrador']}>
+                  <Padres />
                 </ProtectedRoute>
               }
             />
