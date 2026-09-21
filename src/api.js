@@ -17,9 +17,17 @@ export function clearStoredUser() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+async function conectar(path, options) {
+  try {
+    return await fetch(path, options);
+  } catch {
+    throw new Error('No se pudo conectar con el servidor. Verificá que esté corriendo (npm run dev).');
+  }
+}
+
 export async function apiDownload(path, nombreArchivo) {
   const user = getStoredUser();
-  const res = await fetch(path, {
+  const res = await conectar(path, {
     headers: user ? { 'x-user-id': user.id, 'x-user-role': user.rol } : {}
   });
   if (!res.ok) {
@@ -48,7 +56,7 @@ export async function apiFetch(path, options = {}) {
     headers['x-user-role'] = user.rol;
   }
 
-  const res = await fetch(path, { ...options, headers });
+  const res = await conectar(path, { ...options, headers });
 
   if (!res.ok) {
     let message = `Error ${res.status}`;
