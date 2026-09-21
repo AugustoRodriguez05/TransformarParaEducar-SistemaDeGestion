@@ -1,7 +1,6 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
-import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,10 +10,6 @@ const dbPromise = open({
   filename: path.join(__dirname, 'gestion.sqlite'),
   driver: sqlite3.Database
 });
-
-function hash(plain) {
-  return bcrypt.hashSync(plain, 8);
-}
 
 export async function initDb() {
   const db = await dbPromise;
@@ -144,111 +139,6 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_alumnos_legajo ON alumnos(legajo);
     CREATE INDEX IF NOT EXISTS idx_alumnos_apellido ON alumnos(apellido);
   `);
-
-  const countUsuarios = await db.get('SELECT COUNT(*) as count FROM usuarios');
-  if (countUsuarios.count === 0) {
-    const adminId = (await db.run(
-      'INSERT INTO usuarios (nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-      ['Admin', 'Gestión', 'admin@gestion.com', hash('admin123'), 'administrador']
-    )).lastID;
-
-    const prof1UserId = (await db.run(
-      'INSERT INTO usuarios (nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-      ['Carla', 'Gómez', 'carla.gomez@gestion.com', hash('prof123'), 'profesor']
-    )).lastID;
-
-    const prof2UserId = (await db.run(
-      'INSERT INTO usuarios (nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-      ['Martín', 'Díaz', 'martin.diaz@gestion.com', hash('prof123'), 'profesor']
-    )).lastID;
-
-    const padre1Id = (await db.run(
-      'INSERT INTO usuarios (nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-      ['Laura', 'Fernández', 'laura.fernandez@gestion.com', hash('padre123'), 'padre']
-    )).lastID;
-
-    const padre2Id = (await db.run(
-      'INSERT INTO usuarios (nombre, apellido, email, password, rol) VALUES (?, ?, ?, ?, ?)',
-      ['Jorge', 'Ibáñez', 'jorge.ibanez@gestion.com', hash('padre123'), 'padre']
-    )).lastID;
-
-    const cursoA = (await db.run('INSERT INTO cursos (nombre) VALUES (?)', ['1° A'])).lastID;
-    const cursoB = (await db.run('INSERT INTO cursos (nombre) VALUES (?)', ['1° B'])).lastID;
-    await db.run('INSERT INTO cursos (nombre) VALUES (?)', ['2° A']);
-
-    const matMate = (await db.run('INSERT INTO materias (nombre) VALUES (?)', ['Matemática'])).lastID;
-    const matLengua = (await db.run('INSERT INTO materias (nombre) VALUES (?)', ['Lengua'])).lastID;
-    await db.run('INSERT INTO materias (nombre) VALUES (?)', ['Historia']);
-    await db.run('INSERT INTO materias (nombre) VALUES (?)', ['Biología']);
-
-    const prof1Id = (await db.run(
-      'INSERT INTO profesores (usuario_id, nombre, apellido, dni, email) VALUES (?, ?, ?, ?, ?)',
-      [prof1UserId, 'Carla', 'Gómez', '30111222', 'carla.gomez@gestion.com']
-    )).lastID;
-
-    const prof2Id = (await db.run(
-      'INSERT INTO profesores (usuario_id, nombre, apellido, dni, email) VALUES (?, ?, ?, ?, ?)',
-      [prof2UserId, 'Martín', 'Díaz', '30333444', 'martin.diaz@gestion.com']
-    )).lastID;
-
-    await db.run(
-      'INSERT INTO asignaciones (profesor_id, materia_id, curso_id, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, ?, ?)',
-      [prof1Id, matMate, cursoA, 'Lunes', '08:00', '09:30']
-    );
-    await db.run(
-      'INSERT INTO asignaciones (profesor_id, materia_id, curso_id, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, ?, ?)',
-      [prof2Id, matLengua, cursoA, 'Lunes', '09:30', '11:00']
-    );
-    await db.run(
-      'INSERT INTO asignaciones (profesor_id, materia_id, curso_id, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?, ?, ?)',
-      [prof1Id, matMate, cursoB, 'Martes', '08:00', '09:30']
-    );
-
-    const alumno1Id = (await db.run(
-      'INSERT INTO alumnos (legajo, nombre, apellido, dni, fecha_nacimiento, curso_id) VALUES (?, ?, ?, ?, ?, ?)',
-      ['2026-0001', 'Sofía', 'Fernández', '45111222', '2015-03-12', cursoA]
-    )).lastID;
-
-    const alumno2Id = (await db.run(
-      'INSERT INTO alumnos (legajo, nombre, apellido, dni, fecha_nacimiento, curso_id) VALUES (?, ?, ?, ?, ?, ?)',
-      ['2026-0002', 'Bruno', 'Ibáñez', '45333444', '2015-07-22', cursoB]
-    )).lastID;
-
-    await db.run(
-      'INSERT INTO padre_alumno (padre_usuario_id, alumno_id) VALUES (?, ?)',
-      [padre1Id, alumno1Id]
-    );
-    await db.run(
-      'INSERT INTO padre_alumno (padre_usuario_id, alumno_id) VALUES (?, ?)',
-      [padre2Id, alumno2Id]
-    );
-
-    void adminId;
-  }
-
-  const countDeportes = await db.get('SELECT COUNT(*) as count FROM deportes');
-  if (countDeportes.count === 0) {
-    const deportes = [
-      ['Fútbol', 'Martes', '16:00', '17:30'],
-      ['Vóley', 'Martes', '17:00', '18:30'],
-      ['Básquet', 'Miercoles', '16:00', '17:30'],
-      ['Natación', 'Jueves', '15:00', '16:30'],
-      ['Handball', 'Viernes', '16:00', '17:30']
-    ];
-    for (const d of deportes) {
-      await db.run(
-        'INSERT INTO deportes (nombre, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)',
-        d
-      );
-    }
-  }
-
-  const countRecorridos = await db.get('SELECT COUNT(*) as count FROM recorridos_transporte');
-  if (countRecorridos.count === 0) {
-    for (const nombre of ['Recorrido 1 - Zona Norte', 'Recorrido 2 - Zona Sur', 'Recorrido 3 - Zona Este', 'Recorrido 4 - Zona Oeste']) {
-      await db.run('INSERT INTO recorridos_transporte (nombre) VALUES (?)', nombre);
-    }
-  }
 }
 
 export default dbPromise;

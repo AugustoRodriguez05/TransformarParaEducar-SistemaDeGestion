@@ -43,14 +43,16 @@ convención de API REST y de capas).
 
 ```bash
 npm install
+npm run seed   # opcional: carga datos de ejemplo en una base vacía
 npm run dev
 ```
 
 Esto levanta el backend en `http://localhost:3002` y el frontend (Vite) con
 proxy de `/api` hacia el backend. Al iniciar por primera vez, la base SQLite
-se crea con datos de ejemplo.
+se crea vacía (solo las tablas). `npm run seed` carga datos de ejemplo y no
+hace nada si la base ya tiene datos.
 
-### Usuarios de prueba
+### Usuarios de ejemplo (los crea `npm run seed`)
 
 | Rol | Email | Contraseña |
 |-----|-------|------------|
@@ -65,7 +67,8 @@ se crea con datos de ejemplo.
 ```
 backend/
   server.js          # entrypoint Express
-  db.js              # conexión SQLite + seed de datos
+  db.js              # conexión SQLite y esquema
+  seed.js            # datos de ejemplo (npm run seed)
   middleware/auth.js # autenticación por header + control de rol
   routes/            # alumnos, profesores, familia, auth, catálogos
 database/

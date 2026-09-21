@@ -2,7 +2,7 @@
 
 ## Sacar lo hardcodeado
 
-- [ ] **Datos de ejemplo** (`backend/db.js`): mover el seed a un script aparte (`npm run seed`) para que la app no cargue usuarios/alumnos/profesores de prueba automáticamente.
+- [x] **Datos de ejemplo**: movidos a `backend/seed.js` (`npm run seed`); la app ya no carga datos de prueba al iniciar.
 - [x] **Usuarios de prueba en el login** (`src/pages/Login.jsx`): eliminado el bloque "Usuarios de prueba". Las credenciales de ejemplo siguen documentadas en el README.
 - [ ] **Cursos y materias**: crear pantallas de alta/edición (hoy solo existen en el seed).
 - [ ] **Padres/tutores**: pantalla para dar de alta padres y vincularlos a alumnos (`padre_alumno`); hoy solo existen en el seed.
