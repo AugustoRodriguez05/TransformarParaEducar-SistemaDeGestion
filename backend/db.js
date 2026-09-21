@@ -114,6 +114,32 @@ export async function initDb() {
       estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja'))
     );
 
+    CREATE TABLE IF NOT EXISTS disponibilidad_profesor (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      profesor_id INTEGER NOT NULL REFERENCES profesores(id),
+      fecha TEXT NOT NULL,
+      hora_inicio TEXT NOT NULL,
+      hora_fin TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS turnos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      disponibilidad_id INTEGER NOT NULL REFERENCES disponibilidad_profesor(id),
+      padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
+      motivo TEXT,
+      estado TEXT NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Confirmado', 'Cancelado')),
+      fecha_solicitud TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS notificaciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      mensaje TEXT NOT NULL,
+      leida INTEGER NOT NULL DEFAULT 0,
+      fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_alumnos_dni ON alumnos(dni);
     CREATE INDEX IF NOT EXISTS idx_alumnos_legajo ON alumnos(legajo);
     CREATE INDEX IF NOT EXISTS idx_alumnos_apellido ON alumnos(apellido);

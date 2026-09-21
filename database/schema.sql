@@ -117,6 +117,39 @@ CREATE TABLE inscripciones_comedor (
 CREATE UNIQUE INDEX uq_transporte_activa ON inscripciones_transporte(alumno_id) WHERE estado = 'Activa';
 CREATE UNIQUE INDEX uq_comedor_activa ON inscripciones_comedor(alumno_id) WHERE estado = 'Activa';
 
+-- Requerimiento 15: reserva de turnos entre padres y profesores
+CREATE TYPE estado_turno AS ENUM ('Pendiente', 'Confirmado', 'Cancelado');
+
+CREATE TABLE disponibilidad_profesor (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    profesor_id UUID NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
+    fecha DATE NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    CONSTRAINT chk_horario_disponibilidad CHECK (hora_inicio < hora_fin)
+);
+
+CREATE TABLE turnos (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    disponibilidad_id UUID NOT NULL REFERENCES disponibilidad_profesor(id),
+    padre_usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    alumno_id UUID NOT NULL REFERENCES alumnos(id),
+    motivo TEXT,
+    estado estado_turno DEFAULT 'Pendiente',
+    fecha_solicitud TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Un profesor no puede tener dos turnos confirmados en la misma franja
+CREATE UNIQUE INDEX uq_turno_confirmado_franja ON turnos(disponibilidad_id) WHERE estado = 'Confirmado';
+
+CREATE TABLE notificaciones (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    mensaje TEXT NOT NULL,
+    leida BOOLEAN DEFAULT FALSE,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX idx_usuarios_email ON usuarios(email);
 CREATE INDEX idx_alumnos_dni ON alumnos(dni);
 CREATE INDEX idx_alumnos_legajo ON alumnos(legajo);

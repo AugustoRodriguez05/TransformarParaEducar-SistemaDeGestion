@@ -9,6 +9,8 @@ import familiaRouter from './routes/familia.routes.js';
 import catalogosRouter from './routes/catalogos.routes.js';
 import serviciosRouter from './routes/servicios.routes.js';
 import reportesRouter from './routes/reportes.routes.js';
+import turnosRouter from './routes/turnos.routes.js';
+import notificacionesRouter from './routes/notificaciones.routes.js';
 
 const app = express();
 app.use(cors());
@@ -26,6 +28,8 @@ app.use('/api/profesores', profesoresRouter);
 app.use('/api/familia', familiaRouter);
 app.use('/api/servicios', serviciosRouter);
 app.use('/api/reportes', reportesRouter);
+app.use('/api/turnos', turnosRouter);
+app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api', catalogosRouter);
 
 const PORT = process.env.PORT || 3002;
