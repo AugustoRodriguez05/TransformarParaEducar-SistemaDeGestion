@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const dbPromise = open({
-  filename: path.join(__dirname, 'gestion.sqlite'),
+  filename: process.env.DB_FILE ? path.resolve(process.env.DB_FILE) : path.join(__dirname, 'gestion.sqlite'),
   driver: sqlite3.Database
 });
 

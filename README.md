@@ -52,6 +52,13 @@ proxy de `/api` hacia el backend. Al iniciar por primera vez, la base SQLite
 se crea vacía (solo las tablas). `npm run seed` carga datos de ejemplo y no
 hace nada si la base ya tiene datos.
 
+### Configuración (opcional)
+
+Copiá `.env.example` como `.env` para cambiar el puerto del backend (`PORT`),
+el archivo de la base (`DB_FILE`), el puerto del frontend (`FRONTEND_PORT`) o la
+URL del backend a la que apunta el proxy de Vite (`API_URL`). Sin `.env` se usan
+los valores por defecto. Requiere Node 22.9 o superior.
+
 ### Usuarios de ejemplo (los crea `npm run seed`)
 
 | Rol | Email | Contraseña |

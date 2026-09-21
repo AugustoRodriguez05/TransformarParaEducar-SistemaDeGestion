@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite\"",
-    "server": "node backend/server.js",
-    "seed": "node backend/seed.js",
+    "server": "node --env-file-if-exists=.env backend/server.js",
+    "seed": "node --env-file-if-exists=.env backend/seed.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
