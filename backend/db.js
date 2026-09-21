@@ -2,6 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { DIAS } from './constantes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +11,8 @@ const dbPromise = open({
   filename: process.env.DB_FILE ? path.resolve(process.env.DB_FILE) : path.join(__dirname, 'gestion.sqlite'),
   driver: sqlite3.Database
 });
+
+const SQL_DIAS = DIAS.map((d) => `'${d}'`).join(',');
 
 export async function initDb() {
   const db = await dbPromise;
@@ -63,7 +66,7 @@ export async function initDb() {
       profesor_id INTEGER NOT NULL REFERENCES profesores(id),
       materia_id INTEGER NOT NULL REFERENCES materias(id),
       curso_id INTEGER NOT NULL REFERENCES cursos(id),
-      dia TEXT NOT NULL CHECK (dia IN ('Lunes','Martes','Miercoles','Jueves','Viernes')),
+      dia TEXT NOT NULL CHECK (dia IN (${SQL_DIAS})),
       hora_inicio TEXT NOT NULL,
       hora_fin TEXT NOT NULL
     );
@@ -78,7 +81,7 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS deportes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nombre TEXT UNIQUE NOT NULL,
-      dia TEXT NOT NULL CHECK (dia IN ('Lunes','Martes','Miercoles','Jueves','Viernes')),
+      dia TEXT NOT NULL CHECK (dia IN (${SQL_DIAS})),
       hora_inicio TEXT NOT NULL,
       hora_fin TEXT NOT NULL
     );
@@ -135,10 +138,24 @@ export async function initDb() {
       fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS configuracion (
+      clave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_alumnos_dni ON alumnos(dni);
     CREATE INDEX IF NOT EXISTS idx_alumnos_legajo ON alumnos(legajo);
     CREATE INDEX IF NOT EXISTS idx_alumnos_apellido ON alumnos(apellido);
   `);
+
+  await db.run(
+    "INSERT OR IGNORE INTO configuracion (clave, valor) VALUES ('ciclo_lectivo', ?)",
+    String(new Date().getFullYear())
+  );
+
+  // Migración: antes este campo era un 0/1; ahora guarda el año del ciclo en que se inscribió.
+  const { valor } = await db.get("SELECT valor FROM configuracion WHERE clave = 'ciclo_lectivo'");
+  await db.run('UPDATE alumnos SET inscripto_ciclo_lectivo = ? WHERE inscripto_ciclo_lectivo = 1', Number(valor));
 }
 
 export default dbPromise;

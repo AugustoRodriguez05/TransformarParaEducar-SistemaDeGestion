@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { DIAS } from '../constantes.js';
 
 const router = express.Router();
 
@@ -86,6 +87,9 @@ router.post('/:id/asignaciones', async (req, res) => {
   const { materia_id, curso_id, dia, hora_inicio, hora_fin } = req.body;
   if (!materia_id || !curso_id || !dia || !hora_inicio || !hora_fin) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
+  }
+  if (!DIAS.includes(dia)) {
+    return res.status(400).json({ message: `El día debe ser uno de: ${DIAS.join(', ')}` });
   }
   if (hora_inicio >= hora_fin) {
     return res.status(400).json({ message: 'El horario de inicio debe ser anterior al de fin' });

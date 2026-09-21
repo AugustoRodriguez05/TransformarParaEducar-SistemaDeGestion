@@ -1,6 +1,7 @@
 import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { obtenerCicloLectivo } from '../configuracion.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ function validarCamposObligatorios(body) {
 }
 
 async function generarLegajo(db) {
-  const anio = new Date().getFullYear();
+  const anio = await obtenerCicloLectivo(db);
   const { count } = await db.get(
     "SELECT COUNT(*) as count FROM alumnos WHERE legajo LIKE ?",
     `${anio}-%`

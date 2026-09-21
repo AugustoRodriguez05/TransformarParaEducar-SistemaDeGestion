@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
+import { useConfig } from '../useConfig';
 
-const DIAS = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes'];
 const PROFESOR_VACIO = { nombre: '', apellido: '', dni: '', email: '', password: '' };
-const ASIGNACION_VACIA = { materia_id: '', curso_id: '', dia: 'Lunes', hora_inicio: '', hora_fin: '' };
+const ASIGNACION_VACIA = { materia_id: '', curso_id: '', dia: '', hora_inicio: '', hora_fin: '' };
 
 export default function Profesores() {
   const { user } = useAuth();
@@ -54,6 +54,8 @@ function VistaProfesor() {
 }
 
 function VistaAdministrador() {
+  const config = useConfig();
+  const dias = config ? config.dias : [];
   const [profesores, setProfesores] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [materias, setMaterias] = useState([]);
@@ -201,8 +203,9 @@ function VistaAdministrador() {
             </label>
             <label>
               Día
-              <select value={asigForm.dia} onChange={handleAsigChange('dia')}>
-                {DIAS.map((d) => <option key={d} value={d}>{d}</option>)}
+              <select value={asigForm.dia} onChange={handleAsigChange('dia')} required>
+                <option value="">Seleccionar…</option>
+                {dias.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </label>
             <label>Desde<input type="time" value={asigForm.hora_inicio} onChange={handleAsigChange('hora_inicio')} required /></label>

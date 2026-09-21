@@ -1,6 +1,7 @@
 import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { obtenerCicloLectivo } from '../configuracion.js';
 
 const router = express.Router();
 
@@ -55,7 +56,11 @@ router.get('/hijos/:alumnoId', async (req, res) => {
       )
     : [];
 
-  res.json({ alumno, materias });
+  const ciclo = await obtenerCicloLectivo(db);
+  res.json({
+    alumno: { ...alumno, inscripto_ciclo_lectivo: alumno.inscripto_ciclo_lectivo === ciclo },
+    materias
+  });
 });
 
 // HU3 (tarea 5) - Inscripción al ciclo lectivo
@@ -69,9 +74,10 @@ router.post('/hijos/:alumnoId/inscripcion', async (req, res) => {
     return res.status(403).json({ message: 'No tenés acceso a la información de este alumno' });
   }
 
-  await db.run('UPDATE alumnos SET inscripto_ciclo_lectivo = 1 WHERE id = ?', req.params.alumnoId);
+  const ciclo = await obtenerCicloLectivo(db);
+  await db.run('UPDATE alumnos SET inscripto_ciclo_lectivo = ? WHERE id = ?', [ciclo, req.params.alumnoId]);
   const alumno = await db.get('SELECT * FROM alumnos WHERE id = ?', req.params.alumnoId);
-  res.json(alumno);
+  res.json({ ...alumno, inscripto_ciclo_lectivo: true });
 });
 
 export default router;

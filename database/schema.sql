@@ -51,7 +51,7 @@ CREATE TABLE alumnos (
     fecha_nacimiento DATE NOT NULL,
     curso_id UUID REFERENCES cursos(id),
     estado estado_legajo DEFAULT 'Activo',
-    inscripto_ciclo_lectivo BOOLEAN DEFAULT FALSE
+    inscripto_ciclo_lectivo INTEGER DEFAULT 0 -- año del ciclo lectivo en que se inscribió (0 = nunca)
 );
 
 -- Requerimiento 03: asignación de materias/cursos a profesores
@@ -116,6 +116,12 @@ CREATE TABLE inscripciones_comedor (
 -- Una sola inscripción activa por alumno y servicio
 CREATE UNIQUE INDEX uq_transporte_activa ON inscripciones_transporte(alumno_id) WHERE estado = 'Activa';
 CREATE UNIQUE INDEX uq_comedor_activa ON inscripciones_comedor(alumno_id) WHERE estado = 'Activa';
+
+-- Configuración general (ciclo lectivo vigente, etc.)
+CREATE TABLE configuracion (
+    clave VARCHAR(50) PRIMARY KEY,
+    valor VARCHAR(255) NOT NULL
+);
 
 -- Requerimiento 15: reserva de turnos entre padres y profesores
 CREATE TYPE estado_turno AS ENUM ('Pendiente', 'Confirmado', 'Cancelado');

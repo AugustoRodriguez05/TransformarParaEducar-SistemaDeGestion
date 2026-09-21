@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
 import ServiciosAlumno from '../components/ServiciosAlumno';
+import { useConfig } from '../useConfig';
 
 export default function PanelFamilia() {
+  const config = useConfig();
+  const ciclo = config ? config.cicloLectivo : '';
   const [hijos, setHijos] = useState([]);
   const [seleccionado, setSeleccionado] = useState(null);
   const [detalle, setDetalle] = useState(null);
@@ -91,9 +94,9 @@ export default function PanelFamilia() {
 
           <div className="form-actions">
             {detalle.alumno.inscripto_ciclo_lectivo ? (
-              <span className="success">Ya inscripto al ciclo lectivo 2026.</span>
+              <span className="success">Ya inscripto al ciclo lectivo {ciclo}.</span>
             ) : (
-              <button onClick={inscribir}>Inscribir al ciclo lectivo 2026</button>
+              <button onClick={inscribir}>Inscribir al ciclo lectivo {ciclo}</button>
             )}
           </div>
           {mensaje && <p className="success">{mensaje}</p>}
