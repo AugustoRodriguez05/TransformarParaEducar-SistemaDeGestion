@@ -1,6 +1,7 @@
 import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { DIAS } from '../constantes.js';
 
 const router = express.Router();
 
@@ -21,6 +22,79 @@ router.get('/deportes', async (req, res) => {
 router.get('/recorridos', async (req, res) => {
   const db = await dbPromise;
   res.json(await db.all('SELECT * FROM recorridos_transporte ORDER BY id'));
+});
+
+// ---------- Administración del catálogo de deportes (solo administrador) ----------
+
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function validarDeporte({ nombre, dia, hora_inicio, hora_fin }) {
+  if (!String(nombre || '').trim()) return 'El nombre es obligatorio';
+  if (!DIAS.includes(dia)) return `El día debe ser uno de: ${DIAS.join(', ')}`;
+  if (!FORMATO_HORA.test(hora_inicio || '') || !FORMATO_HORA.test(hora_fin || '')) {
+    return 'Los horarios son obligatorios y deben tener formato HH:MM';
+  }
+  if (hora_inicio >= hora_fin) return 'El horario de inicio debe ser anterior al de fin';
+  return null;
+}
+
+router.post('/deportes', requireRole('administrador'), async (req, res) => {
+  const error = validarDeporte(req.body);
+  if (error) return res.status(400).json({ message: error });
+
+  const db = await dbPromise;
+  const nombre = req.body.nombre.trim();
+  if (await db.get('SELECT id FROM deportes WHERE nombre = ?', nombre)) {
+    return res.status(409).json({ message: 'Ya existe un deporte con ese nombre' });
+  }
+  const result = await db.run(
+    'INSERT INTO deportes (nombre, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)',
+    [nombre, req.body.dia, req.body.hora_inicio, req.body.hora_fin]
+  );
+  res.status(201).json(await db.get('SELECT * FROM deportes WHERE id = ?', result.lastID));
+});
+
+router.put('/deportes/:id', requireRole('administrador'), async (req, res) => {
+  const error = validarDeporte(req.body);
+  if (error) return res.status(400).json({ message: error });
+
+  const db = await dbPromise;
+  const deporte = await db.get('SELECT * FROM deportes WHERE id = ?', req.params.id);
+  if (!deporte) return res.status(404).json({ message: 'Deporte no encontrado' });
+
+  const nombre = req.body.nombre.trim();
+  if (await db.get('SELECT id FROM deportes WHERE nombre = ? AND id != ?', [nombre, deporte.id])) {
+    return res.status(409).json({ message: 'Ya existe un deporte con ese nombre' });
+  }
+
+  // Cambiar el horario con alumnos inscriptos podría romper la regla de no superposición.
+  const cambiaHorario = deporte.dia !== req.body.dia
+    || deporte.hora_inicio !== req.body.hora_inicio
+    || deporte.hora_fin !== req.body.hora_fin;
+  if (cambiaHorario && await db.get(
+    "SELECT id FROM inscripciones_deportivas WHERE deporte_id = ? AND estado = 'Activa'",
+    deporte.id
+  )) {
+    return res.status(409).json({ message: 'No se puede cambiar el horario: hay alumnos inscriptos' });
+  }
+
+  await db.run(
+    'UPDATE deportes SET nombre = ?, dia = ?, hora_inicio = ?, hora_fin = ? WHERE id = ?',
+    [nombre, req.body.dia, req.body.hora_inicio, req.body.hora_fin, deporte.id]
+  );
+  res.json(await db.get('SELECT * FROM deportes WHERE id = ?', deporte.id));
+});
+
+router.delete('/deportes/:id', requireRole('administrador'), async (req, res) => {
+  const db = await dbPromise;
+  if (!(await db.get('SELECT id FROM deportes WHERE id = ?', req.params.id))) {
+    return res.status(404).json({ message: 'Deporte no encontrado' });
+  }
+  if (await db.get('SELECT id FROM inscripciones_deportivas WHERE deporte_id = ?', req.params.id)) {
+    return res.status(409).json({ message: 'No se puede eliminar: tiene inscripciones asociadas' });
+  }
+  await db.run('DELETE FROM deportes WHERE id = ?', req.params.id);
+  res.json({ message: 'Eliminado' });
 });
 
 // El administrador opera sobre cualquier alumno; el padre solo sobre sus hijos

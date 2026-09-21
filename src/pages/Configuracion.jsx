@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
 import CatalogoEditor from '../components/CatalogoEditor';
+import DeportesEditor from '../components/DeportesEditor';
 
 function CicloLectivo() {
   const config = useConfig();
@@ -58,6 +59,8 @@ export default function Configuracion() {
       <CicloLectivo />
       <CatalogoEditor titulo="Cursos" ruta="cursos" />
       <CatalogoEditor titulo="Materias" ruta="materias" />
+      <DeportesEditor />
+      <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" />
     </div>
   );
 }

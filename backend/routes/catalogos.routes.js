@@ -73,4 +73,11 @@ registrarCatalogo({
   usos: ['SELECT id FROM asignaciones WHERE materia_id = ?']
 });
 
+registrarCatalogo({
+  ruta: 'recorridos',
+  tabla: 'recorridos_transporte',
+  etiqueta: 'un recorrido',
+  usos: ['SELECT id FROM inscripciones_transporte WHERE recorrido_id = ?']
+});
+
 export default router;

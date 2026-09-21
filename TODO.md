@@ -13,4 +13,4 @@
 
 ## Pendiente (detectado al terminar lo anterior)
 
-- [ ] **Deportes y recorridos de transporte**: no tienen pantalla de alta/edición; hoy solo se cargan con `npm run seed`, así que en una base vacía HU5 y HU6 no tienen opciones para elegir.
+- [x] **Deportes y recorridos de transporte**: se administran desde la pantalla "Configuración" (alta, edición y baja). No se borra lo que tiene inscripciones, y no se cambia el horario de un deporte con alumnos inscriptos.
