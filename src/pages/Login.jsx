@@ -45,13 +45,6 @@ export default function Login() {
         {error && <p className="error">{error}</p>}
 
         <button type="submit" disabled={loading}>{loading ? 'Ingresando…' : 'Ingresar'}</button>
-
-        <div className="hint">
-          <p><strong>Usuarios de prueba</strong></p>
-          <p>admin@gestion.com / admin123 (Administrador)</p>
-          <p>carla.gomez@gestion.com / prof123 (Profesor)</p>
-          <p>laura.fernandez@gestion.com / padre123 (Padre)</p>
-        </div>
       </form>
     </div>
   );
