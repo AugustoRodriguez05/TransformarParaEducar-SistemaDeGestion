@@ -47,17 +47,17 @@ npm run seed   # opcional: carga datos de ejemplo en una base vacía
 npm run dev
 ```
 
+Esto levanta el backend en `http://localhost:3002` y el frontend (Vite) con
+proxy de `/api` hacia el backend. Al iniciar por primera vez, la base SQLite
+se crea vacía (solo las tablas). `npm run seed` carga datos de ejemplo y no
+hace nada si la base ya tiene datos.
+
 Para empezar sin datos de ejemplo, creá el primer administrador y cargá el resto
 (cursos, materias, deportes, alumnos, etc.) desde la aplicación:
 
 ```bash
 npm run crear-admin -- admin@escuela.com una-contraseña Nombre Apellido
 ```
-
-Esto levanta el backend en `http://localhost:3002` y el frontend (Vite) con
-proxy de `/api` hacia el backend. Al iniciar por primera vez, la base SQLite
-se crea vacía (solo las tablas). `npm run seed` carga datos de ejemplo y no
-hace nada si la base ya tiene datos.
 
 ### Configuración (opcional)
 
