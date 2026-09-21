@@ -9,6 +9,8 @@ import Alumnos from './pages/Alumnos';
 import Profesores from './pages/Profesores';
 import PanelFamilia from './pages/PanelFamilia';
 import Reportes from './pages/Reportes';
+import Turnos from './pages/Turnos';
+import Notificaciones from './pages/Notificaciones';
 
 function App() {
   return (
@@ -47,6 +49,22 @@ function App() {
               element={
                 <ProtectedRoute roles={['administrador']}>
                   <Reportes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="turnos"
+              element={
+                <ProtectedRoute roles={['profesor', 'padre']}>
+                  <Turnos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="notificaciones"
+              element={
+                <ProtectedRoute roles={['profesor', 'padre']}>
+                  <Notificaciones />
                 </ProtectedRoute>
               }
             />

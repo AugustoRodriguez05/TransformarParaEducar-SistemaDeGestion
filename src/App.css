@@ -179,6 +179,26 @@ label {
 .badge.activo { background: #e3f2e9; color: var(--primary-dark); }
 .badge.inactivo { background: #f4e3e1; color: var(--danger); }
 
+.badge.pendiente { background: #fdf3d8; color: #7a5b00; }
+.badge.confirmado { background: #e3f2e9; color: var(--primary-dark); }
+.badge.cancelado { background: #f4e3e1; color: var(--danger); }
+
+.contador {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e0a800;
+  color: #1f2a24;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.noti-nueva { font-weight: 600; }
+.servicios-lista small { color: var(--muted); margin-left: 12px; white-space: nowrap; }
+
 .error { color: var(--danger); }
 .success { color: var(--success); }
 

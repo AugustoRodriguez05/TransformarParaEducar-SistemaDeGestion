@@ -26,6 +26,12 @@ convención de API REST y de capas).
 | HU6 | Inscripción a transporte y comedor |
 | HU7 | Reportes por curso y por materia (exportables a PDF y Excel) |
 
+## Alcance — Sprint 3 (Módulo 3)
+
+| HU | Descripción |
+|----|-------------|
+| HU8 | Reserva de turnos entre padres/tutores y profesores (Desafío) |
+
 ## Stack
 
 - Frontend: React 19 + Vite, React Router

@@ -1,5 +1,7 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { apiFetch } from '../api';
 
 const NAV_POR_ROL = {
   administrador: [
@@ -8,16 +10,33 @@ const NAV_POR_ROL = {
     { to: '/reportes', label: 'Reportes' }
   ],
   profesor: [
-    { to: '/profesores', label: 'Mis materias' }
+    { to: '/profesores', label: 'Mis materias' },
+    { to: '/turnos', label: 'Turnos' },
+    { to: '/notificaciones', label: 'Notificaciones', conContador: true }
   ],
   padre: [
-    { to: '/panel-familia', label: 'Panel de familia' }
+    { to: '/panel-familia', label: 'Panel de familia' },
+    { to: '/turnos', label: 'Turnos' },
+    { to: '/notificaciones', label: 'Notificaciones', conContador: true }
   ]
 };
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [noLeidas, setNoLeidas] = useState(0);
+
+  const tieneNotificaciones = user && user.rol !== 'administrador';
+
+  useEffect(() => {
+    if (!tieneNotificaciones) return;
+    let cancelado = false;
+    apiFetch('/api/notificaciones')
+      .then((data) => !cancelado && setNoLeidas(pathname === '/notificaciones' ? 0 : data.noLeidas))
+      .catch(() => {});
+    return () => { cancelado = true; };
+  }, [pathname, tieneNotificaciones]);
 
   const handleLogout = () => {
     logout();
@@ -35,6 +54,7 @@ export default function Layout() {
             {items.map((item) => (
               <NavLink key={item.to} to={item.to} className={({ isActive }) => (isActive ? 'active' : '')}>
                 {item.label}
+                {item.conContador && noLeidas > 0 && <span className="contador">{noLeidas}</span>}
               </NavLink>
             ))}
           </nav>
