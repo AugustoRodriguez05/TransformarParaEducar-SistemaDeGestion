@@ -13,8 +13,10 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
+    "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "lucide-react": "^1.14.0",
+    "pdfkit": "^0.20.2",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0",
