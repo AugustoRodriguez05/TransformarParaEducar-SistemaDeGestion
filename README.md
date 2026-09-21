@@ -47,6 +47,13 @@ npm run seed   # opcional: carga datos de ejemplo en una base vacía
 npm run dev
 ```
 
+Para empezar sin datos de ejemplo, creá el primer administrador y cargá el resto
+(cursos, materias, deportes, alumnos, etc.) desde la aplicación:
+
+```bash
+npm run crear-admin -- admin@escuela.com una-contraseña Nombre Apellido
+```
+
 Esto levanta el backend en `http://localhost:3002` y el frontend (Vite) con
 proxy de `/api` hacia el backend. Al iniciar por primera vez, la base SQLite
 se crea vacía (solo las tablas). `npm run seed` carga datos de ejemplo y no
@@ -76,6 +83,7 @@ backend/
   server.js          # entrypoint Express
   db.js              # conexión SQLite y esquema
   seed.js            # datos de ejemplo (npm run seed)
+  crear-admin.js     # crea el primer administrador (npm run crear-admin)
   middleware/auth.js # autenticación por header + control de rol
   routes/            # alumnos, profesores, familia, auth, catálogos
 database/

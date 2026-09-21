@@ -7,6 +7,7 @@
     "dev": "concurrently \"npm run server\" \"vite\"",
     "server": "node --env-file-if-exists=.env backend/server.js",
     "seed": "node --env-file-if-exists=.env backend/seed.js",
+    "crear-admin": "node --env-file-if-exists=.env backend/crear-admin.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
