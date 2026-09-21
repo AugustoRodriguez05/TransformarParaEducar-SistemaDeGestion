@@ -7,7 +7,8 @@ const NAV_POR_ROL = {
   administrador: [
     { to: '/alumnos', label: 'Alumnos' },
     { to: '/profesores', label: 'Profesores' },
-    { to: '/reportes', label: 'Reportes' }
+    { to: '/reportes', label: 'Reportes' },
+    { to: '/configuracion', label: 'Configuración' }
   ],
   profesor: [
     { to: '/profesores', label: 'Mis materias' },
