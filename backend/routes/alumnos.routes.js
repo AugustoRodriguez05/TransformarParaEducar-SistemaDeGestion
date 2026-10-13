@@ -40,12 +40,29 @@ async function validarAlumno(db, body) {
 
 async function generarLegajo(db) {
   const anio = await obtenerCicloLectivo(db);
-  const { count } = await db.get(
-    "SELECT COUNT(*) as count FROM alumnos WHERE legajo LIKE ?",
-    `${anio}-%`
+  // Se toma el número más alto usado en el año (no la cantidad de alumnos), para
+  // que eliminar un alumno no haga repetir un legajo existente.
+  const prefijo = `${anio}-`;
+  const { ultimo } = await db.get(
+    'SELECT MAX(CAST(SUBSTR(legajo, ?) AS INTEGER)) as ultimo FROM alumnos WHERE legajo LIKE ?',
+    [prefijo.length + 1, `${prefijo}%`]
   );
-  const secuencia = String(count + 1).padStart(4, '0');
-  return `${anio}-${secuencia}`;
+  const secuencia = String((ultimo || 0) + 1).padStart(4, '0');
+  return `${prefijo}${secuencia}`;
+}
+
+// Tablas de la base que tienen una columna alumno_id. Se detectan en el momento,
+// así las tablas que se agreguen más adelante quedan cubiertas sin tocar esta ruta.
+async function tablasConAlumnoId(db) {
+  const tablas = await db.all(
+    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'alumnos'"
+  );
+  const resultado = [];
+  for (const { name } of tablas) {
+    const columnas = await db.all(`PRAGMA table_info("${name}")`);
+    if (columnas.some((c) => c.name === 'alumno_id')) resultado.push(name);
+  }
+  return resultado;
 }
 
 // HU4 - Búsqueda por DNI, apellido o legajo (o listado completo sin filtro)
@@ -169,6 +186,25 @@ router.patch('/:id/estado', async (req, res) => {
   await db.run('UPDATE alumnos SET estado = ? WHERE id = ?', [estado, req.params.id]);
   const actualizado = await db.get('SELECT * FROM alumnos WHERE id = ?', req.params.id);
   res.json(actualizado);
+});
+
+// Eliminación definitiva, solo para alumnos cargados por error: si tiene
+// cualquier registro asociado se rechaza y corresponde la baja lógica.
+router.delete('/:id', async (req, res) => {
+  const db = await dbPromise;
+  const alumno = await db.get('SELECT id FROM alumnos WHERE id = ?', req.params.id);
+  if (!alumno) return res.status(404).json({ message: 'Alumno no encontrado' });
+
+  for (const tabla of await tablasConAlumnoId(db)) {
+    if (await db.get(`SELECT 1 FROM "${tabla}" WHERE alumno_id = ? LIMIT 1`, alumno.id)) {
+      return res.status(409).json({
+        message: 'No se puede eliminar: el alumno tiene datos asociados. Usá "Dar de baja".'
+      });
+    }
+  }
+
+  await db.run('DELETE FROM alumnos WHERE id = ?', alumno.id);
+  res.json({ message: 'Alumno eliminado' });
 });
 
 export default router;

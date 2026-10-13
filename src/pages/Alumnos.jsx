@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowDown, BadgeCheck, ClipboardList, FileText, GraduationCap, Hash, IdCard,
-  Pencil, RotateCcw, Save, Search, User, UserPlus, Users
+  Pencil, RotateCcw, Save, Search, Trash2, User, UserPlus, Users
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import ServiciosAlumno from '../components/ServiciosAlumno';
@@ -128,6 +128,20 @@ export default function Alumnos() {
     }
   };
 
+  const eliminar = async (alumno) => {
+    if (!window.confirm(`¿Eliminar a ${alumno.apellido}, ${alumno.nombre}? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    setMessage('');
+    try {
+      await apiFetch(`/api/alumnos/${alumno.id}`, { method: 'DELETE' });
+      if (alumnoServicios?.id === alumno.id) setAlumnoServicios(null);
+      setMessage('Alumno eliminado.');
+      await cargarAlumnos(query);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -237,6 +251,7 @@ export default function Alumnos() {
                       ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
                       : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
                   </button>
+                  <button className="accion accion-eliminar" onClick={() => eliminar(a)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
                 </td>
               </tr>
             ))}
