@@ -1,10 +1,13 @@
 import dbPromise from '../db.js';
+import { leerToken } from '../token.js';
 
-// Autenticación simple basada en cabeceras: el frontend reenvía el id del
-// usuario logueado y el backend siempre vuelve a resolver su rol contra la
-// base de datos (nunca confía en el rol que declare el cliente).
+// Autenticación con token (JWT): el login entrega un token firmado y el cliente
+// lo envía en la cabecera "Authorization: Bearer <token>". El backend vuelve a
+// buscar al usuario en la base para obtener su rol (nunca confía en el cliente).
 export async function authenticate(req, res, next) {
-  const userId = parseInt(req.header('x-user-id'), 10);
+  const cabecera = req.header('authorization') || '';
+  const token = cabecera.startsWith('Bearer ') ? cabecera.slice(7) : null;
+  const userId = token ? leerToken(token) : null;
   if (!userId) {
     return res.status(401).json({ message: 'No autenticado' });
   }

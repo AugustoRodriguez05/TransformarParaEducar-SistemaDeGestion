@@ -3,7 +3,9 @@ const STORAGE_KEY = 'gestion_user';
 export function getStoredUser() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+    const user = raw ? JSON.parse(raw) : null;
+    // Una sesión guardada antes del cambio a token no sirve: hay que volver a iniciar sesión.
+    return user && user.token ? user : null;
   } catch {
     return null;
   }
@@ -18,17 +20,24 @@ export function clearStoredUser() {
 }
 
 async function conectar(path, options) {
+  let res;
   try {
-    return await fetch(path, options);
+    res = await fetch(path, options);
   } catch {
     throw new Error('No se pudo conectar con el servidor. Verificá que esté corriendo (npm run dev).');
   }
+  // Token vencido o inválido: se cierra la sesión y se vuelve al login.
+  if (res.status === 401 && getStoredUser()) {
+    clearStoredUser();
+    window.location.href = '/login';
+  }
+  return res;
 }
 
 export async function apiDownload(path, nombreArchivo) {
   const user = getStoredUser();
   const res = await conectar(path, {
-    headers: user ? { 'x-user-id': user.id, 'x-user-role': user.rol } : {}
+    headers: user ? { Authorization: `Bearer ${user.token}` } : {}
   });
   if (!res.ok) {
     let message = `Error ${res.status}`;
@@ -52,8 +61,7 @@ export async function apiFetch(path, options = {}) {
   const user = getStoredUser();
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (user) {
-    headers['x-user-id'] = user.id;
-    headers['x-user-role'] = user.rol;
+    headers.Authorization = `Bearer ${user.token}`;
   }
 
   const res = await conectar(path, { ...options, headers });
