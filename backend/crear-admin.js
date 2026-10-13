@@ -2,12 +2,30 @@
 // Sirve para arrancar con una base vacía (sin datos de ejemplo).
 import bcrypt from 'bcryptjs';
 import dbPromise, { initDb } from './db.js';
+import {
+  limpiar, primerError, validarEmail, validarNombrePersona, validarPasswordNueva
+} from './validaciones.js';
 
-const [email, password, nombre = 'Administrador', apellido = 'Sistema'] = process.argv.slice(2);
+const [emailArg, password, nombreArg = 'Administrador', apellidoArg = 'Sistema'] = process.argv.slice(2);
+const email = limpiar(emailArg);
+const nombre = limpiar(nombreArg);
+const apellido = limpiar(apellidoArg);
 
 async function crearAdmin() {
   if (!email || !password) {
     console.error('Uso: npm run crear-admin -- <email> <contraseña> [nombre] [apellido]');
+    process.exitCode = 1;
+    return;
+  }
+
+  const error = primerError(
+    validarEmail(email),
+    validarPasswordNueva(password),
+    validarNombrePersona(nombre, 'El nombre'),
+    validarNombrePersona(apellido, 'El apellido')
+  );
+  if (error) {
+    console.error(`${error}.`);
     process.exitCode = 1;
     return;
   }

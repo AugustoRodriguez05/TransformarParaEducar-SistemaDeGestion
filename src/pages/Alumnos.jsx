@@ -7,6 +7,9 @@ import { apiFetch } from '../api';
 import ServiciosAlumno from '../components/ServiciosAlumno';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
+import {
+  limpiar, soloErrores, validarDni, validarFechaNacimiento, validarNombrePersona
+} from '../validaciones';
 
 const ALUMNO_VACIO = { nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '' };
 
@@ -18,6 +21,7 @@ export default function Alumnos() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(ALUMNO_VACIO);
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
   const [message, setMessage] = useState('');
   const [buscado, setBuscado] = useState(false);
   const [alumnoServicios, setAlumnoServicios] = useState(null);
@@ -54,6 +58,7 @@ export default function Alumnos() {
     setEditingId(null);
     setFormData(ALUMNO_VACIO);
     setError('');
+    setErrores({});
     setMessage('');
     setFormVisible(true);
   };
@@ -68,6 +73,7 @@ export default function Alumnos() {
       curso_id: alumno.curso_id || ''
     });
     setError('');
+    setErrores({});
     setMessage('');
     setFormVisible(true);
   };
@@ -78,12 +84,28 @@ export default function Alumnos() {
     e.preventDefault();
     setError('');
     setMessage('');
+
+    const datos = {
+      ...formData,
+      nombre: limpiar(formData.nombre),
+      apellido: limpiar(formData.apellido),
+      dni: limpiar(formData.dni)
+    };
+    const encontrados = soloErrores({
+      nombre: validarNombrePersona(datos.nombre, 'El nombre'),
+      apellido: validarNombrePersona(datos.apellido, 'El apellido'),
+      dni: validarDni(datos.dni),
+      fecha_nacimiento: validarFechaNacimiento(datos.fecha_nacimiento)
+    });
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
     try {
       if (editingId) {
-        await apiFetch(`/api/alumnos/${editingId}`, { method: 'PUT', body: JSON.stringify(formData) });
+        await apiFetch(`/api/alumnos/${editingId}`, { method: 'PUT', body: JSON.stringify(datos) });
         setMessage('Legajo actualizado correctamente.');
       } else {
-        await apiFetch('/api/alumnos', { method: 'POST', body: JSON.stringify(formData) });
+        await apiFetch('/api/alumnos', { method: 'POST', body: JSON.stringify(datos) });
         setMessage('Alumno dado de alta correctamente.');
       }
       setFormVisible(false);
@@ -144,18 +166,22 @@ export default function Alumnos() {
             <label>
               Nombre
               <input value={formData.nombre} onChange={handleChange('nombre')} required />
+              {errores.nombre && <small className="error">{errores.nombre}</small>}
             </label>
             <label>
               Apellido
               <input value={formData.apellido} onChange={handleChange('apellido')} required />
+              {errores.apellido && <small className="error">{errores.apellido}</small>}
             </label>
             <label>
               DNI
-              <input value={formData.dni} onChange={handleChange('dni')} required />
+              <input inputMode="numeric" value={formData.dni} onChange={handleChange('dni')} required />
+              {errores.dni && <small className="error">{errores.dni}</small>}
             </label>
             <label>
               Fecha de nacimiento
               <input type="date" value={formData.fecha_nacimiento} onChange={handleChange('fecha_nacimiento')} required />
+              {errores.fecha_nacimiento && <small className="error">{errores.fecha_nacimiento}</small>}
             </label>
             <label>
               Curso

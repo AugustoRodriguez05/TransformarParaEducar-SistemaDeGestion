@@ -4,6 +4,7 @@ import { apiFetch } from '../api';
 import { formatearFecha } from '../fecha';
 import ThIcono from './ThIcono';
 import TituloSeccion from './TituloSeccion';
+import { MAX_MOTIVO } from '../validaciones';
 
 export default function TurnosPadre() {
   const [hijos, setHijos] = useState([]);
@@ -112,7 +113,7 @@ export default function TurnosPadre() {
           </label>
           <label>
             Motivo (opcional)
-            <input value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+            <input maxLength={MAX_MOTIVO} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
           </label>
         </div>
 

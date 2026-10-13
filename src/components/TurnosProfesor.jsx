@@ -6,6 +6,7 @@ import { apiFetch } from '../api';
 import { formatearFecha, hoyISO } from '../fecha';
 import ThIcono from './ThIcono';
 import TituloSeccion from './TituloSeccion';
+import { soloErrores, validarFecha, validarRangoHorario } from '../validaciones';
 
 const FRANJA_VACIA = { fecha: '', hora_inicio: '', hora_fin: '' };
 
@@ -16,6 +17,7 @@ export default function TurnosProfesor() {
   const [reprogramando, setReprogramando] = useState(null);
   const [nuevaFranja, setNuevaFranja] = useState('');
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -46,6 +48,13 @@ export default function TurnosProfesor() {
 
   const agregarFranja = async (e) => {
     e.preventDefault();
+    const encontrados = soloErrores({
+      fecha: validarFecha(form.fecha),
+      hora_fin: validarRangoHorario(form.hora_inicio, form.hora_fin)
+    });
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
     if (await ejecutar('/api/turnos/disponibilidad', 'POST', form)) setForm(FRANJA_VACIA);
   };
 
@@ -66,9 +75,17 @@ export default function TurnosProfesor() {
       <div className="card">
         <TituloSeccion icono={Clock}>Mi disponibilidad</TituloSeccion>
         <form className="form-grid" onSubmit={agregarFranja}>
-          <label>Fecha<input type="date" min={hoyISO()} value={form.fecha} onChange={handleChange('fecha')} required /></label>
+          <label>
+            Fecha
+            <input type="date" min={hoyISO()} value={form.fecha} onChange={handleChange('fecha')} required />
+            {errores.fecha && <small className="error">{errores.fecha}</small>}
+          </label>
           <label>Desde<input type="time" value={form.hora_inicio} onChange={handleChange('hora_inicio')} required /></label>
-          <label>Hasta<input type="time" value={form.hora_fin} onChange={handleChange('hora_fin')} required /></label>
+          <label>
+            Hasta
+            <input type="time" value={form.hora_fin} onChange={handleChange('hora_fin')} required />
+            {errores.hora_fin && <small className="error">{errores.hora_fin}</small>}
+          </label>
           <div className="form-actions"><button type="submit"><Plus size={18} aria-hidden="true" />Agregar franja</button></div>
         </form>
 

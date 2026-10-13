@@ -8,6 +8,10 @@ import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
+import {
+  limpiar, soloErrores, validarDni, validarEmail, validarNombrePersona,
+  validarPasswordNueva, validarRangoHorario
+} from '../validaciones';
 
 const PROFESOR_VACIO = { nombre: '', apellido: '', dni: '', email: '', password: '' };
 const ASIGNACION_VACIA = { materia_id: '', curso_id: '', dia: '', hora_inicio: '', hora_fin: '' };
@@ -74,6 +78,7 @@ function VistaAdministrador() {
   const [formVisible, setFormVisible] = useState(false);
   const [formData, setFormData] = useState(PROFESOR_VACIO);
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
   const [message, setMessage] = useState('');
 
   const [seleccionado, setSeleccionado] = useState(null);
@@ -95,8 +100,26 @@ function VistaAdministrador() {
     e.preventDefault();
     setError('');
     setMessage('');
+
+    const datos = {
+      ...formData,
+      nombre: limpiar(formData.nombre),
+      apellido: limpiar(formData.apellido),
+      dni: limpiar(formData.dni),
+      email: limpiar(formData.email)
+    };
+    const encontrados = soloErrores({
+      nombre: validarNombrePersona(datos.nombre, 'El nombre'),
+      apellido: validarNombrePersona(datos.apellido, 'El apellido'),
+      dni: validarDni(datos.dni),
+      email: validarEmail(datos.email),
+      password: validarPasswordNueva(datos.password)
+    });
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
     try {
-      await apiFetch('/api/profesores', { method: 'POST', body: JSON.stringify(formData) });
+      await apiFetch('/api/profesores', { method: 'POST', body: JSON.stringify(datos) });
       setMessage('Profesor dado de alta correctamente.');
       setFormVisible(false);
       setFormData(PROFESOR_VACIO);
@@ -119,6 +142,11 @@ function VistaAdministrador() {
   const handleAsigSubmit = async (e) => {
     e.preventDefault();
     setAsigError('');
+    const errorHorario = validarRangoHorario(asigForm.hora_inicio, asigForm.hora_fin);
+    if (errorHorario) {
+      setAsigError(errorHorario);
+      return;
+    }
     try {
       await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`, {
         method: 'POST',
@@ -136,18 +164,38 @@ function VistaAdministrador() {
     <div>
       <div className="page-header">
         <TituloSeccion principal icono={GraduationCap}>Profesores</TituloSeccion>
-        <button onClick={() => { setFormVisible(true); setError(''); setMessage(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo profesor</button>
+        <button onClick={() => { setFormVisible(true); setError(''); setErrores({}); setMessage(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo profesor</button>
       </div>
 
       {formVisible && (
         <form className="card form-card" onSubmit={handleSubmit}>
           <TituloSeccion icono={UserPlus}>Alta de profesor</TituloSeccion>
           <div className="form-grid">
-            <label>Nombre<input value={formData.nombre} onChange={handleChange('nombre')} required /></label>
-            <label>Apellido<input value={formData.apellido} onChange={handleChange('apellido')} required /></label>
-            <label>DNI<input value={formData.dni} onChange={handleChange('dni')} required /></label>
-            <label>Email<input type="email" value={formData.email} onChange={handleChange('email')} required /></label>
-            <label>Contraseña de acceso<input type="password" value={formData.password} onChange={handleChange('password')} required /></label>
+            <label>
+              Nombre
+              <input value={formData.nombre} onChange={handleChange('nombre')} required />
+              {errores.nombre && <small className="error">{errores.nombre}</small>}
+            </label>
+            <label>
+              Apellido
+              <input value={formData.apellido} onChange={handleChange('apellido')} required />
+              {errores.apellido && <small className="error">{errores.apellido}</small>}
+            </label>
+            <label>
+              DNI
+              <input inputMode="numeric" value={formData.dni} onChange={handleChange('dni')} required />
+              {errores.dni && <small className="error">{errores.dni}</small>}
+            </label>
+            <label>
+              Email
+              <input type="email" value={formData.email} onChange={handleChange('email')} required />
+              {errores.email && <small className="error">{errores.email}</small>}
+            </label>
+            <label>
+              Contraseña de acceso
+              <input type="password" value={formData.password} onChange={handleChange('password')} required />
+              {errores.password && <small className="error">{errores.password}</small>}
+            </label>
           </div>
           {error && <p className="error">{error}</p>}
           <div className="form-actions">

@@ -3,6 +3,7 @@ import { Pencil, Plus, Save, Trash2, Volleyball } from 'lucide-react';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
 import TituloSeccion from './TituloSeccion';
+import { limpiar, soloErrores, validarNombreCatalogo, validarRangoHorario } from '../validaciones';
 
 const DEPORTE_VACIO = { nombre: '', dia: '', hora_inicio: '', hora_fin: '' };
 
@@ -13,6 +14,7 @@ export default function DeportesEditor() {
   const [form, setForm] = useState(DEPORTE_VACIO);
   const [editandoId, setEditandoId] = useState(null);
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
   const [version, setVersion] = useState(0);
 
   useEffect(() => {
@@ -39,9 +41,17 @@ export default function DeportesEditor() {
 
   const guardar = async (e) => {
     e.preventDefault();
+    const datos = { ...form, nombre: limpiar(form.nombre) };
+    const encontrados = soloErrores({
+      nombre: validarNombreCatalogo(datos.nombre),
+      hora_fin: validarRangoHorario(datos.hora_inicio, datos.hora_fin)
+    });
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
     const ok = editandoId
-      ? await ejecutar(`/api/servicios/deportes/${editandoId}`, 'PUT', form)
-      : await ejecutar('/api/servicios/deportes', 'POST', form);
+      ? await ejecutar(`/api/servicios/deportes/${editandoId}`, 'PUT', datos)
+      : await ejecutar('/api/servicios/deportes', 'POST', datos);
     if (ok) {
       setForm(DEPORTE_VACIO);
       setEditandoId(null);
@@ -52,12 +62,14 @@ export default function DeportesEditor() {
     setEditandoId(d.id);
     setForm({ nombre: d.nombre, dia: d.dia, hora_inicio: d.hora_inicio, hora_fin: d.hora_fin });
     setError('');
+    setErrores({});
   };
 
   const cancelarEdicion = () => {
     setEditandoId(null);
     setForm(DEPORTE_VACIO);
     setError('');
+    setErrores({});
   };
 
   return (
@@ -65,7 +77,11 @@ export default function DeportesEditor() {
       <TituloSeccion icono={Volleyball}>Deportes</TituloSeccion>
 
       <form className="form-grid" onSubmit={guardar}>
-        <label>Nombre<input value={form.nombre} onChange={handleChange('nombre')} required /></label>
+        <label>
+          Nombre
+          <input value={form.nombre} onChange={handleChange('nombre')} required />
+          {errores.nombre && <small className="error">{errores.nombre}</small>}
+        </label>
         <label>
           Día
           <select value={form.dia} onChange={handleChange('dia')} required>
@@ -74,7 +90,11 @@ export default function DeportesEditor() {
           </select>
         </label>
         <label>Desde<input type="time" value={form.hora_inicio} onChange={handleChange('hora_inicio')} required /></label>
-        <label>Hasta<input type="time" value={form.hora_fin} onChange={handleChange('hora_fin')} required /></label>
+        <label>
+          Hasta
+          <input type="time" value={form.hora_fin} onChange={handleChange('hora_fin')} required />
+          {errores.hora_fin && <small className="error">{errores.hora_fin}</small>}
+        </label>
         <div className="form-actions">
           <button type="submit">{editandoId ? <><Save size={18} aria-hidden="true" />Guardar cambios</> : <><Plus size={18} aria-hidden="true" />Agregar</>}</button>
           {editandoId && <button type="button" className="secondary" onClick={cancelarEdicion}>Cancelar</button>}

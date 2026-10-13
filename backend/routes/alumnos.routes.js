@@ -2,6 +2,9 @@ import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { obtenerCicloLectivo } from '../configuracion.js';
+import {
+  limpiar, primerError, validarDni, validarFechaNacimiento, validarNombrePersona
+} from '../validaciones.js';
 
 const router = express.Router();
 
@@ -12,6 +15,27 @@ const REQUIRED_FIELDS = ['nombre', 'apellido', 'dni', 'fecha_nacimiento'];
 
 function validarCamposObligatorios(body) {
   return REQUIRED_FIELDS.filter((campo) => !body[campo] || String(body[campo]).trim() === '');
+}
+
+// Devuelve los datos ya recortados y, si alguno es inválido, el mensaje de error.
+async function validarAlumno(db, body) {
+  const datos = {
+    nombre: limpiar(body.nombre),
+    apellido: limpiar(body.apellido),
+    dni: limpiar(body.dni),
+    fecha_nacimiento: limpiar(body.fecha_nacimiento),
+    curso_id: body.curso_id || null
+  };
+  let error = primerError(
+    validarNombrePersona(datos.nombre, 'El nombre'),
+    validarNombrePersona(datos.apellido, 'El apellido'),
+    validarDni(datos.dni),
+    validarFechaNacimiento(datos.fecha_nacimiento)
+  );
+  if (!error && datos.curso_id && !(await db.get('SELECT id FROM cursos WHERE id = ?', datos.curso_id))) {
+    error = 'El curso seleccionado no existe';
+  }
+  return { datos, error };
 }
 
 async function generarLegajo(db) {
@@ -70,7 +94,9 @@ router.post('/', async (req, res) => {
   }
 
   const db = await dbPromise;
-  const { nombre, apellido, dni, fecha_nacimiento, curso_id } = req.body;
+  const { datos, error } = await validarAlumno(db, req.body);
+  if (error) return res.status(400).json({ message: error });
+  const { nombre, apellido, dni, fecha_nacimiento, curso_id } = datos;
 
   const existente = await db.get('SELECT id FROM alumnos WHERE dni = ?', dni);
   if (existente) {
@@ -105,7 +131,9 @@ router.put('/:id', async (req, res) => {
     return res.status(400).json({ message: `Faltan campos obligatorios: ${faltantes.join(', ')}` });
   }
 
-  const { nombre, apellido, dni, fecha_nacimiento, curso_id } = req.body;
+  const { datos, error } = await validarAlumno(db, req.body);
+  if (error) return res.status(400).json({ message: error });
+  const { nombre, apellido, dni, fecha_nacimiento, curso_id } = datos;
 
   const otroConMismoDni = await db.get('SELECT id FROM alumnos WHERE dni = ? AND id != ?', [dni, req.params.id]);
   if (otroConMismoDni) {

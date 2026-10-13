@@ -2,13 +2,11 @@ import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { notificar } from '../notificaciones.js';
+import { esFechaValida, esHoraValida, limpiar, validarMotivo } from '../validaciones.js';
 
 const router = express.Router();
 
 router.use(authenticate);
-
-const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
-const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const SELECT_TURNO = `
   SELECT t.*, d.fecha, d.hora_inicio, d.hora_fin, d.profesor_id,
@@ -72,7 +70,7 @@ router.get('/disponibilidad', requireRole('profesor'), async (req, res) => {
 
 router.post('/disponibilidad', requireRole('profesor'), async (req, res) => {
   const { fecha, hora_inicio, hora_fin } = req.body;
-  if (!FORMATO_FECHA.test(fecha || '') || !FORMATO_HORA.test(hora_inicio || '') || !FORMATO_HORA.test(hora_fin || '')) {
+  if (!esFechaValida(fecha) || !esHoraValida(hora_inicio) || !esHoraValida(hora_fin)) {
     return res.status(400).json({ message: 'Fecha y horarios son obligatorios y deben tener formato válido' });
   }
   if (hora_inicio >= hora_fin) {
@@ -257,10 +255,13 @@ router.get('/profesores/:profesorId/disponibilidad', requireRole('padre'), async
 
 // HU8 tarea 2 - Solicitud de turno (queda Pendiente)
 router.post('/', requireRole('padre'), async (req, res) => {
-  const { disponibilidad_id, alumno_id, motivo } = req.body;
+  const { disponibilidad_id, alumno_id } = req.body;
+  const motivo = limpiar(req.body.motivo);
   if (!disponibilidad_id || !alumno_id) {
     return res.status(400).json({ message: 'Faltan datos para solicitar el turno' });
   }
+  const errorMotivo = validarMotivo(motivo);
+  if (errorMotivo) return res.status(400).json({ message: errorMotivo });
 
   const db = await dbPromise;
   const alumno = await alumnoDelPadre(db, req, res, alumno_id);

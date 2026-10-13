@@ -3,6 +3,10 @@ import bcrypt from 'bcryptjs';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { DIAS } from '../constantes.js';
+import {
+  limpiar, primerError, validarDni, validarEmail, validarNombrePersona,
+  validarPasswordNueva, validarRangoHorario
+} from '../validaciones.js';
 
 const router = express.Router();
 
@@ -48,10 +52,22 @@ router.get('/', async (req, res) => {
 
 // HU2 - Alta de profesor (crea también su cuenta de acceso)
 router.post('/', async (req, res) => {
-  const { nombre, apellido, dni, email, password } = req.body;
+  const { password } = req.body;
+  const nombre = limpiar(req.body.nombre);
+  const apellido = limpiar(req.body.apellido);
+  const dni = limpiar(req.body.dni);
+  const email = limpiar(req.body.email);
   if (!nombre || !apellido || !dni || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
+  const error = primerError(
+    validarNombrePersona(nombre, 'El nombre'),
+    validarNombrePersona(apellido, 'El apellido'),
+    validarDni(dni),
+    validarEmail(email),
+    validarPasswordNueva(password)
+  );
+  if (error) return res.status(400).json({ message: error });
 
   const db = await dbPromise;
   const dniExistente = await db.get('SELECT id FROM profesores WHERE dni = ?', dni);
@@ -91,13 +107,18 @@ router.post('/:id/asignaciones', async (req, res) => {
   if (!DIAS.includes(dia)) {
     return res.status(400).json({ message: `El día debe ser uno de: ${DIAS.join(', ')}` });
   }
-  if (hora_inicio >= hora_fin) {
-    return res.status(400).json({ message: 'El horario de inicio debe ser anterior al de fin' });
-  }
+  const errorHorario = validarRangoHorario(hora_inicio, hora_fin);
+  if (errorHorario) return res.status(400).json({ message: errorHorario });
 
   const db = await dbPromise;
   const profesor = await db.get('SELECT * FROM profesores WHERE id = ?', req.params.id);
   if (!profesor) return res.status(404).json({ message: 'Profesor no encontrado' });
+  if (!(await db.get('SELECT id FROM materias WHERE id = ?', materia_id))) {
+    return res.status(400).json({ message: 'La materia seleccionada no existe' });
+  }
+  if (!(await db.get('SELECT id FROM cursos WHERE id = ?', curso_id))) {
+    return res.status(400).json({ message: 'El curso seleccionado no existe' });
+  }
 
   const asignacionesDelDia = await db.all(
     'SELECT * FROM asignaciones WHERE profesor_id = ? AND dia = ?',
