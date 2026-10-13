@@ -22,7 +22,8 @@ CREATE TABLE usuarios (
 
 CREATE TABLE cursos (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    nombre VARCHAR(50) UNIQUE NOT NULL
+    nombre VARCHAR(50) UNIQUE NOT NULL,
+    nivel VARCHAR(50)
 );
 
 CREATE TABLE materias (
@@ -81,6 +82,7 @@ CREATE TABLE deportes (
     dia dia_semana NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
+    profesor_id UUID REFERENCES profesores(id),
     CONSTRAINT chk_horario_deporte CHECK (hora_inicio < hora_fin)
 );
 
@@ -91,6 +93,8 @@ CREATE TABLE inscripciones_deportivas (
     alumno_id UUID NOT NULL REFERENCES alumnos(id),
     deporte_id UUID NOT NULL REFERENCES deportes(id),
     estado estado_inscripcion DEFAULT 'Activa',
+    fecha_alta DATE,
+    fecha_baja DATE,
     UNIQUE (alumno_id, deporte_id)
 );
 
@@ -104,13 +108,17 @@ CREATE TABLE inscripciones_transporte (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     alumno_id UUID NOT NULL REFERENCES alumnos(id),
     recorrido_id UUID NOT NULL REFERENCES recorridos_transporte(id),
-    estado estado_inscripcion DEFAULT 'Activa'
+    estado estado_inscripcion DEFAULT 'Activa',
+    fecha_alta DATE,
+    fecha_baja DATE
 );
 
 CREATE TABLE inscripciones_comedor (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     alumno_id UUID NOT NULL REFERENCES alumnos(id),
-    estado estado_inscripcion DEFAULT 'Activa'
+    estado estado_inscripcion DEFAULT 'Activa',
+    fecha_alta DATE,
+    fecha_baja DATE
 );
 
 -- Una sola inscripción activa por alumno y servicio
@@ -154,6 +162,97 @@ CREATE TABLE notificaciones (
     mensaje TEXT NOT NULL,
     leida BOOLEAN DEFAULT FALSE,
     fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Parte 3: cuotas, facturas y pagos
+CREATE TYPE concepto_cobro AS ENUM ('cuota', 'deporte', 'transporte', 'comedor');
+
+CREATE TABLE tarifas (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tipo concepto_cobro NOT NULL,
+    referencia_id UUID,
+    importe NUMERIC(12,2) NOT NULL CHECK (importe >= 0),
+    vigente_desde DATE NOT NULL
+);
+
+CREATE TABLE cuotas (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    alumno_id UUID NOT NULL REFERENCES alumnos(id),
+    periodo CHAR(7) NOT NULL,
+    vencimiento DATE NOT NULL,
+    total NUMERIC(12,2) NOT NULL DEFAULT 0,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pago parcial', 'Pagada', 'Vencida')),
+    UNIQUE (alumno_id, periodo)
+);
+
+CREATE TABLE items_cuota (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    cuota_id UUID NOT NULL REFERENCES cuotas(id) ON DELETE CASCADE,
+    concepto concepto_cobro NOT NULL,
+    referencia_id UUID,
+    descripcion VARCHAR(150) NOT NULL,
+    importe NUMERIC(12,2) NOT NULL CHECK (importe >= 0),
+    estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pago informado', 'Pagado'))
+);
+
+CREATE TABLE facturas (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    cuota_id UUID UNIQUE NOT NULL REFERENCES cuotas(id),
+    numero VARCHAR(20) UNIQUE NOT NULL,
+    fecha_emision TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    total NUMERIC(12,2) NOT NULL,
+    archivo_pdf VARCHAR(255)
+);
+
+CREATE TABLE ordenes_pago (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    numero VARCHAR(20) UNIQUE NOT NULL,
+    factura_id UUID NOT NULL REFERENCES facturas(id),
+    padre_usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    total NUMERIC(12,2) NOT NULL
+);
+
+CREATE TABLE orden_pago_items (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    orden_pago_id UUID NOT NULL REFERENCES ordenes_pago(id) ON DELETE CASCADE,
+    item_cuota_id UUID NOT NULL REFERENCES items_cuota(id),
+    UNIQUE (orden_pago_id, item_cuota_id)
+);
+
+CREATE TABLE comprobantes_pago (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    factura_id UUID NOT NULL REFERENCES facturas(id),
+    padre_usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    numero_operacion VARCHAR(50) UNIQUE NOT NULL,
+    importe NUMERIC(12,2) NOT NULL CHECK (importe > 0),
+    fecha_transferencia DATE NOT NULL,
+    archivo VARCHAR(255) NOT NULL,
+    fecha_carga TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE codigos_recuperacion (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    codigo VARCHAR(10) NOT NULL,
+    vence TIMESTAMP WITH TIME ZONE NOT NULL,
+    usado BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE envios_mail (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    padre_usuario_id UUID NOT NULL REFERENCES usuarios(id),
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('recordatorio', 'deuda')),
+    periodo CHAR(7) NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Enviado', 'Error')),
+    intentos INTEGER NOT NULL DEFAULT 0,
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (padre_usuario_id, tipo, periodo)
+);
+
+CREATE TABLE feriados (
+    fecha DATE PRIMARY KEY,
+    descripcion VARCHAR(100) NOT NULL
 );
 
 CREATE INDEX idx_usuarios_email ON usuarios(email);
