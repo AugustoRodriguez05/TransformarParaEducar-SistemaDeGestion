@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { apiFetch } from '../api';
 import TituloSeccion from './TituloSeccion';
+import { limpiar, validarNombreCatalogo } from '../validaciones';
 
 export default function CatalogoEditor({ titulo, ruta, icono }) {
   const [items, setItems] = useState([]);
@@ -33,11 +34,23 @@ export default function CatalogoEditor({ titulo, ruta, icono }) {
 
   const agregar = async (e) => {
     e.preventDefault();
-    if (await ejecutar(`/api/${ruta}`, 'POST', nuevo)) setNuevo('');
+    const nombre = limpiar(nuevo);
+    const errorNombre = validarNombreCatalogo(nombre);
+    if (errorNombre) {
+      setError(errorNombre);
+      return;
+    }
+    if (await ejecutar(`/api/${ruta}`, 'POST', nombre)) setNuevo('');
   };
 
   const guardarEdicion = async (id) => {
-    if (await ejecutar(`/api/${ruta}/${id}`, 'PUT', nombreEditado)) setEditandoId(null);
+    const nombre = limpiar(nombreEditado);
+    const errorNombre = validarNombreCatalogo(nombre);
+    if (errorNombre) {
+      setError(errorNombre);
+      return;
+    }
+    if (await ejecutar(`/api/${ruta}/${id}`, 'PUT', nombre)) setEditandoId(null);
   };
 
   return (

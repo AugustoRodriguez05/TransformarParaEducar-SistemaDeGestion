@@ -2,6 +2,7 @@ import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { DIAS } from '../constantes.js';
+import { limpiar, validarNombreCatalogo, validarRangoHorario } from '../validaciones.js';
 
 const router = express.Router();
 
@@ -26,16 +27,11 @@ router.get('/recorridos', async (req, res) => {
 
 // ---------- Administración del catálogo de deportes (solo administrador) ----------
 
-const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
-
 function validarDeporte({ nombre, dia, hora_inicio, hora_fin }) {
-  if (!String(nombre || '').trim()) return 'El nombre es obligatorio';
+  const errorNombre = validarNombreCatalogo(limpiar(nombre));
+  if (errorNombre) return errorNombre;
   if (!DIAS.includes(dia)) return `El día debe ser uno de: ${DIAS.join(', ')}`;
-  if (!FORMATO_HORA.test(hora_inicio || '') || !FORMATO_HORA.test(hora_fin || '')) {
-    return 'Los horarios son obligatorios y deben tener formato HH:MM';
-  }
-  if (hora_inicio >= hora_fin) return 'El horario de inicio debe ser anterior al de fin';
-  return null;
+  return validarRangoHorario(hora_inicio, hora_fin);
 }
 
 router.post('/deportes', requireRole('administrador'), async (req, res) => {
@@ -43,7 +39,7 @@ router.post('/deportes', requireRole('administrador'), async (req, res) => {
   if (error) return res.status(400).json({ message: error });
 
   const db = await dbPromise;
-  const nombre = req.body.nombre.trim();
+  const nombre = limpiar(req.body.nombre);
   if (await db.get('SELECT id FROM deportes WHERE nombre = ?', nombre)) {
     return res.status(409).json({ message: 'Ya existe un deporte con ese nombre' });
   }
@@ -62,7 +58,7 @@ router.put('/deportes/:id', requireRole('administrador'), async (req, res) => {
   const deporte = await db.get('SELECT * FROM deportes WHERE id = ?', req.params.id);
   if (!deporte) return res.status(404).json({ message: 'Deporte no encontrado' });
 
-  const nombre = req.body.nombre.trim();
+  const nombre = limpiar(req.body.nombre);
   if (await db.get('SELECT id FROM deportes WHERE nombre = ? AND id != ?', [nombre, deporte.id])) {
     return res.status(409).json({ message: 'Ya existe un deporte con ese nombre' });
   }

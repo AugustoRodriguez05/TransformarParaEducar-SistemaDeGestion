@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, Save, User, UserPlus, UsersRound, X } from 'lucide-react';
 import { apiFetch } from '../api';
 import TituloSeccion from '../components/TituloSeccion';
+import {
+  limpiar, soloErrores, validarEmail, validarNombrePersona, validarPasswordNueva
+} from '../validaciones';
 
 const PADRE_VACIO = { nombre: '', apellido: '', email: '', password: '' };
 
@@ -12,6 +15,7 @@ export default function Padres() {
   const [formData, setFormData] = useState(PADRE_VACIO);
   const [alumnoAVincular, setAlumnoAVincular] = useState({});
   const [error, setError] = useState('');
+  const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState('');
   const [version, setVersion] = useState(0);
 
@@ -44,7 +48,22 @@ export default function Padres() {
 
   const crearPadre = async (e) => {
     e.preventDefault();
-    if (await ejecutar('/api/padres', 'POST', formData)) {
+    const datos = {
+      ...formData,
+      nombre: limpiar(formData.nombre),
+      apellido: limpiar(formData.apellido),
+      email: limpiar(formData.email)
+    };
+    const encontrados = soloErrores({
+      nombre: validarNombrePersona(datos.nombre, 'El nombre'),
+      apellido: validarNombrePersona(datos.apellido, 'El apellido'),
+      email: validarEmail(datos.email),
+      password: validarPasswordNueva(datos.password)
+    });
+    setErrores(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
+    if (await ejecutar('/api/padres', 'POST', datos)) {
       setMensaje('Padre/tutor dado de alta correctamente.');
       setFormVisible(false);
       setFormData(PADRE_VACIO);
@@ -63,17 +82,33 @@ export default function Padres() {
     <div>
       <div className="page-header">
         <TituloSeccion principal icono={UsersRound}>Padres y tutores</TituloSeccion>
-        <button onClick={() => { setFormVisible(true); setError(''); setMensaje(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo padre/tutor</button>
+        <button onClick={() => { setFormVisible(true); setError(''); setErrores({}); setMensaje(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo padre/tutor</button>
       </div>
 
       {formVisible && (
         <form className="card form-card" onSubmit={crearPadre}>
           <TituloSeccion icono={UserPlus}>Alta de padre/tutor</TituloSeccion>
           <div className="form-grid">
-            <label>Nombre<input value={formData.nombre} onChange={handleChange('nombre')} required /></label>
-            <label>Apellido<input value={formData.apellido} onChange={handleChange('apellido')} required /></label>
-            <label>Email<input type="email" value={formData.email} onChange={handleChange('email')} required /></label>
-            <label>Contraseña de acceso<input type="password" value={formData.password} onChange={handleChange('password')} required /></label>
+            <label>
+              Nombre
+              <input value={formData.nombre} onChange={handleChange('nombre')} required />
+              {errores.nombre && <small className="error">{errores.nombre}</small>}
+            </label>
+            <label>
+              Apellido
+              <input value={formData.apellido} onChange={handleChange('apellido')} required />
+              {errores.apellido && <small className="error">{errores.apellido}</small>}
+            </label>
+            <label>
+              Email
+              <input type="email" value={formData.email} onChange={handleChange('email')} required />
+              {errores.email && <small className="error">{errores.email}</small>}
+            </label>
+            <label>
+              Contraseña de acceso
+              <input type="password" value={formData.password} onChange={handleChange('password')} required />
+              {errores.password && <small className="error">{errores.password}</small>}
+            </label>
           </div>
           <div className="form-actions">
             <button type="submit"><Save size={18} aria-hidden="true" />Guardar</button>

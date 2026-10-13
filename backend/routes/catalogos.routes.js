@@ -1,6 +1,7 @@
 import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { limpiar, validarNombreCatalogo } from '../validaciones.js';
 
 const router = express.Router();
 
@@ -15,8 +16,9 @@ function registrarCatalogo({ ruta, tabla, etiqueta, usos }) {
   });
 
   router.post(`/${ruta}`, requireRole('administrador'), async (req, res) => {
-    const nombre = String(req.body.nombre || '').trim();
-    if (!nombre) return res.status(400).json({ message: 'El nombre es obligatorio' });
+    const nombre = limpiar(req.body.nombre);
+    const error = validarNombreCatalogo(nombre);
+    if (error) return res.status(400).json({ message: error });
 
     const db = await dbPromise;
     if (await db.get(`SELECT id FROM ${tabla} WHERE nombre = ?`, nombre)) {
@@ -27,8 +29,9 @@ function registrarCatalogo({ ruta, tabla, etiqueta, usos }) {
   });
 
   router.put(`/${ruta}/:id`, requireRole('administrador'), async (req, res) => {
-    const nombre = String(req.body.nombre || '').trim();
-    if (!nombre) return res.status(400).json({ message: 'El nombre es obligatorio' });
+    const nombre = limpiar(req.body.nombre);
+    const error = validarNombreCatalogo(nombre);
+    if (error) return res.status(400).json({ message: error });
 
     const db = await dbPromise;
     if (!(await db.get(`SELECT id FROM ${tabla} WHERE id = ?`, req.params.id))) {

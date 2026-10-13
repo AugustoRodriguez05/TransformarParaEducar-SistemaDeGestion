@@ -2,6 +2,9 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import {
+  limpiar, primerError, validarEmail, validarNombrePersona, validarPasswordNueva
+} from '../validaciones.js';
 
 const router = express.Router();
 
@@ -28,10 +31,20 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { nombre, apellido, email, password } = req.body;
+  const { password } = req.body;
+  const nombre = limpiar(req.body.nombre);
+  const apellido = limpiar(req.body.apellido);
+  const email = limpiar(req.body.email);
   if (!nombre || !apellido || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
+  const error = primerError(
+    validarNombrePersona(nombre, 'El nombre'),
+    validarNombrePersona(apellido, 'El apellido'),
+    validarEmail(email),
+    validarPasswordNueva(password)
+  );
+  if (error) return res.status(400).json({ message: error });
 
   const db = await dbPromise;
   if (await db.get('SELECT id FROM usuarios WHERE email = ?', email)) {
