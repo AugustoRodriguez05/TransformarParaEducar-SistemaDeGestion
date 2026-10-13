@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
+import {
+  BadgeCheck, BookOpen, Calendar, Clock, FileText, GraduationCap, IdCard, Mail,
+  Plus, Save, User, UserPlus
+} from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
+import ThIcono from '../components/ThIcono';
+import TituloSeccion from '../components/TituloSeccion';
 
 const PROFESOR_VACIO = { nombre: '', apellido: '', dni: '', email: '', password: '' };
 const ASIGNACION_VACIA = { materia_id: '', curso_id: '', dia: '', hora_inicio: '', hora_fin: '' };
@@ -29,19 +35,24 @@ function VistaProfesor() {
 
   return (
     <div>
-      <h2>Mis materias asignadas</h2>
+      <TituloSeccion principal icono={GraduationCap}>Mis materias asignadas</TituloSeccion>
       {error && <p className="error">{error}</p>}
       {asignaciones.length === 0 && !error && <p>Todavía no tenés materias asignadas.</p>}
       {asignaciones.length > 0 && (
         <table className="data-table">
           <thead>
-            <tr><th>Materia</th><th>Curso</th><th>Día</th><th>Horario</th></tr>
+            <tr>
+              <ThIcono icono={BookOpen}>Materia</ThIcono>
+              <ThIcono icono={GraduationCap}>Curso</ThIcono>
+              <ThIcono icono={Calendar}>Día</ThIcono>
+              <ThIcono icono={Clock}>Horario</ThIcono>
+            </tr>
           </thead>
           <tbody>
             {asignaciones.map((a) => (
               <tr key={a.id}>
                 <td>{a.materia_nombre}</td>
-                <td>{a.curso_nombre}</td>
+                <td><span className="badge curso">{a.curso_nombre}</span></td>
                 <td>{a.dia}</td>
                 <td>{a.hora_inicio} - {a.hora_fin}</td>
               </tr>
@@ -124,13 +135,13 @@ function VistaAdministrador() {
   return (
     <div>
       <div className="page-header">
-        <h2>Profesores</h2>
-        <button onClick={() => { setFormVisible(true); setError(''); setMessage(''); }}>Nuevo profesor</button>
+        <TituloSeccion principal icono={GraduationCap}>Profesores</TituloSeccion>
+        <button onClick={() => { setFormVisible(true); setError(''); setMessage(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo profesor</button>
       </div>
 
       {formVisible && (
         <form className="card form-card" onSubmit={handleSubmit}>
-          <h3>Alta de profesor</h3>
+          <TituloSeccion icono={UserPlus}>Alta de profesor</TituloSeccion>
           <div className="form-grid">
             <label>Nombre<input value={formData.nombre} onChange={handleChange('nombre')} required /></label>
             <label>Apellido<input value={formData.apellido} onChange={handleChange('apellido')} required /></label>
@@ -140,7 +151,7 @@ function VistaAdministrador() {
           </div>
           {error && <p className="error">{error}</p>}
           <div className="form-actions">
-            <button type="submit">Guardar profesor</button>
+            <button type="submit"><Save size={18} aria-hidden="true" />Guardar profesor</button>
             <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
           </div>
         </form>
@@ -150,7 +161,13 @@ function VistaAdministrador() {
 
       <table className="data-table">
         <thead>
-          <tr><th>Apellido y Nombre</th><th>DNI</th><th>Email</th><th>Estado</th><th></th></tr>
+          <tr>
+            <ThIcono icono={User}>Apellido y Nombre</ThIcono>
+            <ThIcono icono={FileText}>DNI</ThIcono>
+            <ThIcono icono={Mail}>Email</ThIcono>
+            <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+            <th></th>
+          </tr>
         </thead>
         <tbody>
           {profesores.map((p) => (
@@ -159,7 +176,7 @@ function VistaAdministrador() {
               <td>{p.dni}</td>
               <td>{p.email}</td>
               <td><span className="badge activo">{p.estado}</span></td>
-              <td><button className="link" onClick={() => verAsignaciones(p)}>Ver / asignar materias</button></td>
+              <td className="actions"><button className="accion accion-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button></td>
             </tr>
           ))}
         </tbody>
@@ -167,17 +184,24 @@ function VistaAdministrador() {
 
       {seleccionado && (
         <div className="card">
-          <h3>Materias asignadas a {seleccionado.nombre} {seleccionado.apellido}</h3>
+          <TituloSeccion icono={BookOpen}>Materias asignadas a {seleccionado.nombre} {seleccionado.apellido}</TituloSeccion>
 
           {asignaciones.length === 0 && <p>Sin materias asignadas todavía.</p>}
           {asignaciones.length > 0 && (
             <table className="data-table">
-              <thead><tr><th>Materia</th><th>Curso</th><th>Día</th><th>Horario</th></tr></thead>
+              <thead>
+                <tr>
+                  <ThIcono icono={BookOpen}>Materia</ThIcono>
+                  <ThIcono icono={GraduationCap}>Curso</ThIcono>
+                  <ThIcono icono={Calendar}>Día</ThIcono>
+                  <ThIcono icono={Clock}>Horario</ThIcono>
+                </tr>
+              </thead>
               <tbody>
                 {asignaciones.map((a) => (
                   <tr key={a.id}>
                     <td>{a.materia_nombre}</td>
-                    <td>{a.curso_nombre}</td>
+                    <td><span className="badge curso">{a.curso_nombre}</span></td>
                     <td>{a.dia}</td>
                     <td>{a.hora_inicio} - {a.hora_fin}</td>
                   </tr>
@@ -211,7 +235,7 @@ function VistaAdministrador() {
             <label>Desde<input type="time" value={asigForm.hora_inicio} onChange={handleAsigChange('hora_inicio')} required /></label>
             <label>Hasta<input type="time" value={asigForm.hora_fin} onChange={handleAsigChange('hora_fin')} required /></label>
             <div className="form-actions">
-              <button type="submit">Asignar</button>
+              <button type="submit"><Plus size={18} aria-hidden="true" />Asignar</button>
             </div>
           </form>
           {asigError && <p className="error">{asigError}</p>}

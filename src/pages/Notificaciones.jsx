@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Bell } from 'lucide-react';
 import { apiFetch } from '../api';
+import TituloSeccion from '../components/TituloSeccion';
 
 export default function Notificaciones() {
   const [notificaciones, setNotificaciones] = useState([]);
@@ -19,7 +21,7 @@ export default function Notificaciones() {
 
   return (
     <div>
-      <h2>Notificaciones</h2>
+      <TituloSeccion principal icono={Bell}>Notificaciones</TituloSeccion>
       {error && <p className="error">{error}</p>}
       {notificaciones.length === 0 && !error && <p>No tenés notificaciones.</p>}
       <ul className="servicios-lista">

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { ArrowDown, Bus, Plus, Utensils, Volleyball } from 'lucide-react';
 import { apiFetch } from '../api';
+import TituloSeccion from './TituloSeccion';
 
 export default function ServiciosAlumno({ alumnoId }) {
   const [deportes, setDeportes] = useState([]);
@@ -38,13 +40,13 @@ export default function ServiciosAlumno({ alumnoId }) {
 
   return (
     <div className="servicios">
-      <h4>Actividades deportivas (máximo 2)</h4>
+      <TituloSeccion nivel="h4" icono={Volleyball}>Actividades deportivas (máximo 2)</TituloSeccion>
       {servicios.deportes.length === 0 && <p>Sin deportes inscriptos.</p>}
       <ul className="servicios-lista">
         {servicios.deportes.map((d) => (
           <li key={d.id}>
             <span>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</span>
-            <button className="link" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}>Dar de baja</button>
+            <button className="accion accion-baja" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         ))}
       </ul>
@@ -59,16 +61,17 @@ export default function ServiciosAlumno({ alumnoId }) {
           disabled={!deporteSel}
           onClick={() => { ejecutar('/deportes', 'POST', { deporte_id: deporteSel }); setDeporteSel(''); }}
         >
+          <Plus size={18} aria-hidden="true" />
           Inscribir
         </button>
       </div>
 
-      <h4>Transporte</h4>
+      <TituloSeccion nivel="h4" icono={Bus}>Transporte</TituloSeccion>
       {servicios.transporte ? (
         <ul className="servicios-lista">
           <li>
             <span>{servicios.transporte.recorrido_nombre}</span>
-            <button className="link" onClick={() => ejecutar('/transporte', 'DELETE')}>Dar de baja</button>
+            <button className="accion accion-baja" onClick={() => ejecutar('/transporte', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         </ul>
       ) : (
@@ -81,21 +84,22 @@ export default function ServiciosAlumno({ alumnoId }) {
             disabled={!recorridoSel}
             onClick={() => { ejecutar('/transporte', 'POST', { recorrido_id: recorridoSel }); setRecorridoSel(''); }}
           >
+            <Plus size={18} aria-hidden="true" />
             Inscribir
           </button>
         </div>
       )}
 
-      <h4>Comedor</h4>
+      <TituloSeccion nivel="h4" icono={Utensils}>Comedor</TituloSeccion>
       {servicios.comedor ? (
         <ul className="servicios-lista">
           <li>
             <span>Inscripto al comedor</span>
-            <button className="link" onClick={() => ejecutar('/comedor', 'DELETE')}>Dar de baja</button>
+            <button className="accion accion-baja" onClick={() => ejecutar('/comedor', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         </ul>
       ) : (
-        <button onClick={() => ejecutar('/comedor', 'POST')}>Inscribir al comedor</button>
+        <button onClick={() => ejecutar('/comedor', 'POST')}><Plus size={18} aria-hidden="true" />Inscribir al comedor</button>
       )}
 
       {error && <p className="error">{error}</p>}

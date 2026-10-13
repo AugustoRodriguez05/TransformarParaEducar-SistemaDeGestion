@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Download, FileBarChart, Table } from 'lucide-react';
 import { apiFetch, apiDownload } from '../api';
+import TituloSeccion from '../components/TituloSeccion';
 
 export default function Reportes() {
   const [tipo, setTipo] = useState('curso');
@@ -59,7 +61,7 @@ export default function Reportes() {
 
   return (
     <div>
-      <h2>Reportes</h2>
+      <TituloSeccion principal icono={FileBarChart}>Reportes</TituloSeccion>
 
       <form className="card form-card" onSubmit={generar}>
         <div className="form-grid">
@@ -90,7 +92,7 @@ export default function Reportes() {
           </label>
         </div>
         <div className="form-actions">
-          <button type="submit">Generar reporte</button>
+          <button type="submit"><FileBarChart size={18} aria-hidden="true" />Generar reporte</button>
         </div>
       </form>
 
@@ -99,11 +101,11 @@ export default function Reportes() {
       {reporte && (
         <div>
           <div className="page-header">
-            <h3>{reporte.titulo}</h3>
+            <TituloSeccion icono={Table}>{reporte.titulo}</TituloSeccion>
             {reporte.filas.length > 0 && (
               <div className="form-actions">
-                <button className="secondary" onClick={() => exportar('pdf')}>Exportar PDF</button>
-                <button className="secondary" onClick={() => exportar('xlsx')}>Exportar Excel</button>
+                <button className="secondary" onClick={() => exportar('pdf')}><Download size={18} aria-hidden="true" />Exportar PDF</button>
+                <button className="secondary" onClick={() => exportar('xlsx')}><Download size={18} aria-hidden="true" />Exportar Excel</button>
               </div>
             )}
           </div>

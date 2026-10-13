@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Pencil, Plus, Save, Trash2, Volleyball } from 'lucide-react';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
+import TituloSeccion from './TituloSeccion';
 
 const DEPORTE_VACIO = { nombre: '', dia: '', hora_inicio: '', hora_fin: '' };
 
@@ -60,7 +62,7 @@ export default function DeportesEditor() {
 
   return (
     <div className="card">
-      <h3>Deportes</h3>
+      <TituloSeccion icono={Volleyball}>Deportes</TituloSeccion>
 
       <form className="form-grid" onSubmit={guardar}>
         <label>Nombre<input value={form.nombre} onChange={handleChange('nombre')} required /></label>
@@ -74,7 +76,7 @@ export default function DeportesEditor() {
         <label>Desde<input type="time" value={form.hora_inicio} onChange={handleChange('hora_inicio')} required /></label>
         <label>Hasta<input type="time" value={form.hora_fin} onChange={handleChange('hora_fin')} required /></label>
         <div className="form-actions">
-          <button type="submit">{editandoId ? 'Guardar cambios' : 'Agregar'}</button>
+          <button type="submit">{editandoId ? <><Save size={18} aria-hidden="true" />Guardar cambios</> : <><Plus size={18} aria-hidden="true" />Agregar</>}</button>
           {editandoId && <button type="button" className="secondary" onClick={cancelarEdicion}>Cancelar</button>}
         </div>
       </form>
@@ -82,13 +84,13 @@ export default function DeportesEditor() {
       {error && <p className="error">{error}</p>}
 
       {deportes.length === 0 ? <p>No hay deportes cargados.</p> : (
-        <ul className="servicios-lista">
+        <ul className="servicios-lista lista-catalogo">
           {deportes.map((d) => (
             <li key={d.id}>
               <span>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</span>
               <span className="actions">
-                <button className="link" onClick={() => editar(d)}>Editar</button>
-                <button className="link" onClick={() => ejecutar(`/api/servicios/deportes/${d.id}`, 'DELETE')}>Eliminar</button>
+                <button className="accion accion-editar" onClick={() => editar(d)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                <button className="accion accion-eliminar" onClick={() => ejecutar(`/api/servicios/deportes/${d.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
               </span>
             </li>
           ))}

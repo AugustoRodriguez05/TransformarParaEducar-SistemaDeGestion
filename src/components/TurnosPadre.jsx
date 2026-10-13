@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { BadgeCheck, Calendar, CalendarCheck, CalendarClock, CalendarPlus, Clock, Send, User, X } from 'lucide-react';
 import { apiFetch } from '../api';
 import { formatearFecha } from '../fecha';
+import ThIcono from './ThIcono';
+import TituloSeccion from './TituloSeccion';
 
 export default function TurnosPadre() {
   const [hijos, setHijos] = useState([]);
@@ -88,10 +91,10 @@ export default function TurnosPadre() {
 
   return (
     <div>
-      <h2>Turnos con profesores</h2>
+      <TituloSeccion principal icono={CalendarClock}>Turnos con profesores</TituloSeccion>
 
       <div className="card">
-        <h3>Solicitar un turno</h3>
+        <TituloSeccion icono={CalendarPlus}>Solicitar un turno</TituloSeccion>
         <div className="form-grid">
           <label>
             Alumno
@@ -119,7 +122,7 @@ export default function TurnosPadre() {
             {franjas.map((f) => (
               <li key={f.id}>
                 <span>{formatearFecha(f.fecha)} — {f.hora_inicio} a {f.hora_fin}</span>
-                <button onClick={() => solicitar(f.id)}>Solicitar</button>
+                <button onClick={() => solicitar(f.id)}><Send size={18} aria-hidden="true" />Solicitar</button>
               </li>
             ))}
           </ul>
@@ -129,11 +132,18 @@ export default function TurnosPadre() {
         {mensaje && <p className="success">{mensaje}</p>}
       </div>
 
-      <h3>Mis turnos</h3>
+      <TituloSeccion icono={CalendarCheck}>Mis turnos</TituloSeccion>
       {misTurnos.length === 0 ? <p>No tenés turnos solicitados.</p> : (
         <table className="data-table">
           <thead>
-            <tr><th>Fecha</th><th>Horario</th><th>Profesor</th><th>Alumno</th><th>Estado</th><th></th></tr>
+            <tr>
+              <ThIcono icono={Calendar}>Fecha</ThIcono>
+              <ThIcono icono={Clock}>Horario</ThIcono>
+              <ThIcono icono={User}>Profesor</ThIcono>
+              <ThIcono icono={User}>Alumno</ThIcono>
+              <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+              <th></th>
+            </tr>
           </thead>
           <tbody>
             {misTurnos.map((t) => (
@@ -144,7 +154,7 @@ export default function TurnosPadre() {
                 <td>{t.alumno_nombre}</td>
                 <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
                 <td>
-                  {t.estado !== 'Cancelado' && <button className="link" onClick={() => cancelar(t.id)}>Cancelar</button>}
+                  {t.estado !== 'Cancelado' && <button className="accion accion-cancelar" onClick={() => cancelar(t.id)}><X size={16} aria-hidden="true" />Cancelar</button>}
                 </td>
               </tr>
             ))}

@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { ArrowLeftRight, BookOpen, Bus, Calendar, GraduationCap, Settings } from 'lucide-react';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
 import CatalogoEditor from '../components/CatalogoEditor';
 import DeportesEditor from '../components/DeportesEditor';
+import TituloSeccion from '../components/TituloSeccion';
 
 function CicloLectivo() {
   const config = useConfig();
@@ -32,7 +34,7 @@ function CicloLectivo() {
 
   return (
     <div className="card">
-      <h3>Ciclo lectivo</h3>
+      <TituloSeccion icono={Calendar}>Ciclo lectivo</TituloSeccion>
       <p>Ciclo vigente: <strong>{cicloActual}</strong>. Define el año de los nuevos legajos y de la inscripción de las familias.</p>
       <form className="servicios-form" onSubmit={guardar}>
         <input
@@ -44,7 +46,7 @@ function CicloLectivo() {
           placeholder="Nuevo año"
           required
         />
-        <button type="submit">Cambiar</button>
+        <button type="submit"><ArrowLeftRight size={18} aria-hidden="true" />Cambiar</button>
       </form>
       {error && <p className="error">{error}</p>}
       {mensaje && <p className="success">{mensaje}</p>}
@@ -55,12 +57,12 @@ function CicloLectivo() {
 export default function Configuracion() {
   return (
     <div>
-      <h2>Configuración</h2>
+      <TituloSeccion principal icono={Settings}>Configuración</TituloSeccion>
       <CicloLectivo />
-      <CatalogoEditor titulo="Cursos" ruta="cursos" />
-      <CatalogoEditor titulo="Materias" ruta="materias" />
+      <CatalogoEditor titulo="Cursos" ruta="cursos" icono={GraduationCap} />
+      <CatalogoEditor titulo="Materias" ruta="materias" icono={BookOpen} />
       <DeportesEditor />
-      <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" />
+      <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" icono={Bus} />
     </div>
   );
 }

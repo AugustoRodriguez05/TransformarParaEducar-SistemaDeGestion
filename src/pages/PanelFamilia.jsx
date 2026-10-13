@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { BookOpen, Calendar, ClipboardList, Clock, Plus, User, UsersRound } from 'lucide-react';
 import { apiFetch } from '../api';
 import ServiciosAlumno from '../components/ServiciosAlumno';
+import ThIcono from '../components/ThIcono';
+import TituloSeccion from '../components/TituloSeccion';
 import { useConfig } from '../useConfig';
 
 export default function PanelFamilia() {
@@ -44,7 +47,7 @@ export default function PanelFamilia() {
 
   return (
     <div>
-      <h2>Panel de familia</h2>
+      <TituloSeccion principal icono={UsersRound}>Panel de familia</TituloSeccion>
 
       {hijos.length === 0 && <p>No tenés alumnos vinculados a tu cuenta.</p>}
 
@@ -65,15 +68,22 @@ export default function PanelFamilia() {
 
       {detalle && (
         <div className="card">
-          <h3>{detalle.alumno.nombre} {detalle.alumno.apellido} — Legajo {detalle.alumno.legajo}</h3>
+          <TituloSeccion icono={User}>{detalle.alumno.nombre} {detalle.alumno.apellido} — Legajo {detalle.alumno.legajo}</TituloSeccion>
           <p>Curso: {detalle.alumno.curso_nombre || 'Sin asignar'}</p>
           <p>Estado del legajo: <span className={`badge ${detalle.alumno.estado.toLowerCase()}`}>{detalle.alumno.estado}</span></p>
 
-          <h4>Materias y profesores</h4>
+          <TituloSeccion nivel="h4" icono={BookOpen}>Materias y profesores</TituloSeccion>
           {detalle.materias.length === 0 && <p>Todavía no hay materias asignadas a este curso.</p>}
           {detalle.materias.length > 0 && (
             <table className="data-table">
-              <thead><tr><th>Materia</th><th>Profesor</th><th>Día</th><th>Horario</th></tr></thead>
+              <thead>
+                <tr>
+                  <ThIcono icono={BookOpen}>Materia</ThIcono>
+                  <ThIcono icono={User}>Profesor</ThIcono>
+                  <ThIcono icono={Calendar}>Día</ThIcono>
+                  <ThIcono icono={Clock}>Horario</ThIcono>
+                </tr>
+              </thead>
               <tbody>
                 {detalle.materias.map((m, idx) => (
                   <tr key={idx}>
@@ -87,7 +97,7 @@ export default function PanelFamilia() {
             </table>
           )}
 
-          <h4>Servicios del alumno</h4>
+          <TituloSeccion nivel="h4" icono={ClipboardList}>Servicios del alumno</TituloSeccion>
           {detalle.alumno.estado === 'Activo'
             ? <ServiciosAlumno key={detalle.alumno.id} alumnoId={detalle.alumno.id} />
             : <p>El legajo está inactivo: no se pueden gestionar servicios.</p>}
@@ -96,7 +106,7 @@ export default function PanelFamilia() {
             {detalle.alumno.inscripto_ciclo_lectivo ? (
               <span className="success">Ya inscripto al ciclo lectivo {ciclo}.</span>
             ) : (
-              <button onClick={inscribir}>Inscribir al ciclo lectivo {ciclo}</button>
+              <button onClick={inscribir}><Plus size={18} aria-hidden="true" />Inscribir al ciclo lectivo {ciclo}</button>
             )}
           </div>
           {mensaje && <p className="success">{mensaje}</p>}
