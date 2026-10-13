@@ -21,11 +21,11 @@ async function crearAdmin() {
   const error = primerError(
     validarEmail(email),
     validarPasswordNueva(password),
-    validarNombrePersona(nombre, 'El nombre'),
-    validarNombrePersona(apellido, 'El apellido')
+    validarNombrePersona(nombre, 'nombre'),
+    validarNombrePersona(apellido, 'apellido')
   );
   if (error) {
-    console.error(`${error}.`);
+    console.error(error);
     process.exitCode = 1;
     return;
   }

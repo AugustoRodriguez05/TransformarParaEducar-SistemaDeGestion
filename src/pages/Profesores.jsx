@@ -109,8 +109,8 @@ function VistaAdministrador() {
       email: limpiar(formData.email)
     };
     const encontrados = soloErrores({
-      nombre: validarNombrePersona(datos.nombre, 'El nombre'),
-      apellido: validarNombrePersona(datos.apellido, 'El apellido'),
+      nombre: validarNombrePersona(datos.nombre, 'nombre'),
+      apellido: validarNombrePersona(datos.apellido, 'apellido'),
       dni: validarDni(datos.dni),
       email: validarEmail(datos.email),
       password: validarPasswordNueva(datos.password)

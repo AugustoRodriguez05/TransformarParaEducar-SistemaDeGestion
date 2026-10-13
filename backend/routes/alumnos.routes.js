@@ -27,8 +27,8 @@ async function validarAlumno(db, body) {
     curso_id: body.curso_id || null
   };
   let error = primerError(
-    validarNombrePersona(datos.nombre, 'El nombre'),
-    validarNombrePersona(datos.apellido, 'El apellido'),
+    validarNombrePersona(datos.nombre, 'nombre'),
+    validarNombrePersona(datos.apellido, 'apellido'),
     validarDni(datos.dni),
     validarFechaNacimiento(datos.fecha_nacimiento)
   );

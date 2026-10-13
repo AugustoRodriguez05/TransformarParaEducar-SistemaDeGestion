@@ -39,8 +39,8 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
   const error = primerError(
-    validarNombrePersona(nombre, 'El nombre'),
-    validarNombrePersona(apellido, 'El apellido'),
+    validarNombrePersona(nombre, 'nombre'),
+    validarNombrePersona(apellido, 'apellido'),
     validarEmail(email),
     validarPasswordNueva(password)
   );

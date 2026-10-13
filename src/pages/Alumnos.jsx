@@ -92,8 +92,8 @@ export default function Alumnos() {
       dni: limpiar(formData.dni)
     };
     const encontrados = soloErrores({
-      nombre: validarNombrePersona(datos.nombre, 'El nombre'),
-      apellido: validarNombrePersona(datos.apellido, 'El apellido'),
+      nombre: validarNombrePersona(datos.nombre, 'nombre'),
+      apellido: validarNombrePersona(datos.apellido, 'apellido'),
       dni: validarDni(datos.dni),
       fecha_nacimiento: validarFechaNacimiento(datos.fecha_nacimiento)
     });
