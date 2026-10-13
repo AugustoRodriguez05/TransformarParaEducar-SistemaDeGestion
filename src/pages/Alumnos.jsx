@@ -118,6 +118,7 @@ export default function Alumnos() {
 
   const cambiarEstado = async (alumno) => {
     const nuevoEstado = alumno.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    if (nuevoEstado === 'Inactivo' && !window.confirm(`¿Dar de baja a ${alumno.apellido}, ${alumno.nombre}?`)) return;
     try {
       await apiFetch(`/api/alumnos/${alumno.id}/estado`, {
         method: 'PATCH',

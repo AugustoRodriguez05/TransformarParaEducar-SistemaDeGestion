@@ -2,6 +2,7 @@ import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { obtenerCicloLectivo } from '../configuracion.js';
+import { COLUMNAS_ALUMNO, tieneDatosAsociados } from '../asociados.js';
 import {
   limpiar, primerError, validarDni, validarFechaNacimiento, validarNombrePersona
 } from '../validaciones.js';
@@ -49,20 +50,6 @@ async function generarLegajo(db) {
   );
   const secuencia = String((ultimo || 0) + 1).padStart(4, '0');
   return `${prefijo}${secuencia}`;
-}
-
-// Tablas de la base que tienen una columna alumno_id. Se detectan en el momento,
-// así las tablas que se agreguen más adelante quedan cubiertas sin tocar esta ruta.
-async function tablasConAlumnoId(db) {
-  const tablas = await db.all(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != 'alumnos'"
-  );
-  const resultado = [];
-  for (const { name } of tablas) {
-    const columnas = await db.all(`PRAGMA table_info("${name}")`);
-    if (columnas.some((c) => c.name === 'alumno_id')) resultado.push(name);
-  }
-  return resultado;
 }
 
 // HU4 - Búsqueda por DNI, apellido o legajo (o listado completo sin filtro)
@@ -195,12 +182,10 @@ router.delete('/:id', async (req, res) => {
   const alumno = await db.get('SELECT id FROM alumnos WHERE id = ?', req.params.id);
   if (!alumno) return res.status(404).json({ message: 'Alumno no encontrado' });
 
-  for (const tabla of await tablasConAlumnoId(db)) {
-    if (await db.get(`SELECT 1 FROM "${tabla}" WHERE alumno_id = ? LIMIT 1`, alumno.id)) {
-      return res.status(409).json({
-        message: 'No se puede eliminar: el alumno tiene datos asociados. Usá "Dar de baja".'
-      });
-    }
+  if (await tieneDatosAsociados(db, { tabla: 'alumnos', nombres: COLUMNAS_ALUMNO, id: alumno.id })) {
+    return res.status(409).json({
+      message: 'No se puede eliminar: el alumno tiene datos asociados. Usá "Dar de baja".'
+    });
   }
 
   await db.run('DELETE FROM alumnos WHERE id = ?', alumno.id);

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  BadgeCheck, BookOpen, Calendar, Clock, FileText, GraduationCap, IdCard, Mail,
-  Plus, Save, User, UserPlus
+  ArrowDown, BadgeCheck, BookOpen, Calendar, Clock, FileText, GraduationCap, IdCard, Mail,
+  Pencil, Plus, RotateCcw, Save, Trash2, User, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
+import Modal from '../components/Modal';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
 import {
@@ -76,6 +77,7 @@ function VistaAdministrador() {
   const [materias, setMaterias] = useState([]);
 
   const [formVisible, setFormVisible] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(PROFESOR_VACIO);
   const [error, setError] = useState('');
   const [errores, setErrores] = useState({});
@@ -96,6 +98,30 @@ function VistaAdministrador() {
 
   const handleChange = (campo) => (e) => setFormData({ ...formData, [campo]: e.target.value });
 
+  const abrirNuevo = () => {
+    setEditingId(null);
+    setFormData(PROFESOR_VACIO);
+    setError('');
+    setErrores({});
+    setMessage('');
+    setFormVisible(true);
+  };
+
+  const abrirEdicion = (profesor) => {
+    setEditingId(profesor.id);
+    setFormData({
+      nombre: profesor.nombre,
+      apellido: profesor.apellido,
+      dni: profesor.dni,
+      email: profesor.email,
+      password: ''
+    });
+    setError('');
+    setErrores({});
+    setMessage('');
+    setFormVisible(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -113,16 +139,51 @@ function VistaAdministrador() {
       apellido: validarNombrePersona(datos.apellido, 'apellido'),
       dni: validarDni(datos.dni),
       email: validarEmail(datos.email),
-      password: validarPasswordNueva(datos.password)
+      password: editingId ? null : validarPasswordNueva(datos.password)
     });
     setErrores(encontrados);
     if (Object.keys(encontrados).length > 0) return;
 
     try {
-      await apiFetch('/api/profesores', { method: 'POST', body: JSON.stringify(datos) });
-      setMessage('Profesor dado de alta correctamente.');
+      if (editingId) {
+        await apiFetch(`/api/profesores/${editingId}`, { method: 'PUT', body: JSON.stringify(datos) });
+        setMessage('Profesor actualizado correctamente.');
+      } else {
+        await apiFetch('/api/profesores', { method: 'POST', body: JSON.stringify(datos) });
+        setMessage('Profesor dado de alta correctamente.');
+      }
       setFormVisible(false);
       setFormData(PROFESOR_VACIO);
+      await cargarProfesores();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const cambiarEstado = async (profesor) => {
+    const nuevoEstado = profesor.estado === 'Activo' ? 'Inactivo' : 'Activo';
+    if (nuevoEstado === 'Inactivo'
+      && !window.confirm(`¿Dar de baja a ${profesor.apellido}, ${profesor.nombre}? No va a poder iniciar sesión hasta que se reactive.`)) return;
+    setError('');
+    setMessage('');
+    try {
+      await apiFetch(`/api/profesores/${profesor.id}/estado`, {
+        method: 'PATCH',
+        body: JSON.stringify({ estado: nuevoEstado })
+      });
+      await cargarProfesores();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const eliminar = async (profesor) => {
+    if (!window.confirm(`¿Eliminar a ${profesor.apellido}, ${profesor.nombre}? Esta acción no se puede deshacer.`)) return;
+    setError('');
+    setMessage('');
+    try {
+      await apiFetch(`/api/profesores/${profesor.id}`, { method: 'DELETE' });
+      setMessage('Profesor eliminado.');
       await cargarProfesores();
     } catch (err) {
       setError(err.message);
@@ -164,12 +225,14 @@ function VistaAdministrador() {
     <div>
       <div className="page-header">
         <TituloSeccion principal icono={GraduationCap}>Profesores</TituloSeccion>
-        <button onClick={() => { setFormVisible(true); setError(''); setErrores({}); setMessage(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo profesor</button>
+        <button onClick={abrirNuevo}><UserPlus size={18} aria-hidden="true" />Nuevo profesor</button>
       </div>
+
+      {error && !formVisible && <p className="error">{error}</p>}
 
       {formVisible && (
         <form className="card form-card" onSubmit={handleSubmit}>
-          <TituloSeccion icono={UserPlus}>Alta de profesor</TituloSeccion>
+          <TituloSeccion icono={editingId ? Pencil : UserPlus}>{editingId ? 'Editar profesor' : 'Alta de profesor'}</TituloSeccion>
           <div className="form-grid">
             <label>
               Nombre
@@ -191,15 +254,17 @@ function VistaAdministrador() {
               <input type="email" value={formData.email} onChange={handleChange('email')} required />
               {errores.email && <small className="error">{errores.email}</small>}
             </label>
-            <label>
-              Contraseña de acceso
-              <input type="password" value={formData.password} onChange={handleChange('password')} required />
-              {errores.password && <small className="error">{errores.password}</small>}
-            </label>
+            {!editingId && (
+              <label>
+                Contraseña de acceso
+                <input type="password" value={formData.password} onChange={handleChange('password')} required />
+                {errores.password && <small className="error">{errores.password}</small>}
+              </label>
+            )}
           </div>
           {error && <p className="error">{error}</p>}
           <div className="form-actions">
-            <button type="submit"><Save size={18} aria-hidden="true" />Guardar profesor</button>
+            <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar profesor'}</button>
             <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
           </div>
         </form>
@@ -219,20 +284,32 @@ function VistaAdministrador() {
         </thead>
         <tbody>
           {profesores.map((p) => (
-            <tr key={p.id}>
+            <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
               <td>{p.apellido}, {p.nombre}</td>
               <td>{p.dni}</td>
               <td>{p.email}</td>
-              <td><span className="badge activo">{p.estado}</span></td>
-              <td className="actions"><button className="accion accion-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button></td>
+              <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
+              <td className="actions">
+                <button className="accion accion-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button>
+                <button className="accion accion-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                <button className={p.estado === 'Activo' ? 'accion accion-baja' : 'accion accion-confirmar'} onClick={() => cambiarEstado(p)}>
+                  {p.estado === 'Activo'
+                    ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                    : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
+                </button>
+                <button className="accion accion-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
 
       {seleccionado && (
-        <div className="card">
-          <TituloSeccion icono={BookOpen}>Materias asignadas a {seleccionado.nombre} {seleccionado.apellido}</TituloSeccion>
+        <Modal
+          icono={BookOpen}
+          titulo={<>Materias asignadas a {seleccionado.nombre} {seleccionado.apellido}</>}
+          onClose={() => setSeleccionado(null)}
+        >
 
           {asignaciones.length === 0 && <p>Sin materias asignadas todavía.</p>}
           {asignaciones.length > 0 && (
@@ -287,7 +364,7 @@ function VistaAdministrador() {
             </div>
           </form>
           {asigError && <p className="error">{asigError}</p>}
-        </div>
+        </Modal>
       )}
     </div>
   );

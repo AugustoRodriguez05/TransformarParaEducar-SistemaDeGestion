@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { DIAS } from '../constantes.js';
+import { COLUMNAS_PROFESOR, COLUMNAS_USUARIO, tieneDatosAsociados } from '../asociados.js';
 import {
   limpiar, primerError, validarDni, validarEmail, validarNombrePersona,
   validarPasswordNueva, validarRangoHorario
@@ -92,6 +93,94 @@ router.post('/', async (req, res) => {
 
   const nuevoProfesor = await db.get('SELECT * FROM profesores WHERE id = ?', result.lastID);
   res.status(201).json(nuevoProfesor);
+});
+
+// Edición de los datos del profesor y de su cuenta de acceso (la contraseña no se cambia acá)
+router.put('/:id', async (req, res) => {
+  const db = await dbPromise;
+  const profesor = await db.get('SELECT * FROM profesores WHERE id = ?', req.params.id);
+  if (!profesor) return res.status(404).json({ message: 'Profesor no encontrado' });
+
+  const nombre = limpiar(req.body.nombre);
+  const apellido = limpiar(req.body.apellido);
+  const dni = limpiar(req.body.dni);
+  const email = limpiar(req.body.email);
+  const error = primerError(
+    validarNombrePersona(nombre, 'nombre'),
+    validarNombrePersona(apellido, 'apellido'),
+    validarDni(dni),
+    validarEmail(email)
+  );
+  if (error) return res.status(400).json({ message: error });
+
+  if (await db.get('SELECT id FROM profesores WHERE dni = ? AND id != ?', [dni, profesor.id])) {
+    return res.status(400).json({ message: 'Ya existe un profesor registrado con ese DNI' });
+  }
+  if (await db.get('SELECT id FROM usuarios WHERE email = ? AND id IS NOT ?', [email, profesor.usuario_id])) {
+    return res.status(400).json({ message: 'Ya existe un usuario registrado con ese email' });
+  }
+
+  await db.run(
+    'UPDATE profesores SET nombre = ?, apellido = ?, dni = ?, email = ? WHERE id = ?',
+    [nombre, apellido, dni, email, profesor.id]
+  );
+  if (profesor.usuario_id) {
+    await db.run(
+      'UPDATE usuarios SET nombre = ?, apellido = ?, email = ? WHERE id = ?',
+      [nombre, apellido, email, profesor.usuario_id]
+    );
+  }
+  res.json(await db.get('SELECT * FROM profesores WHERE id = ?', profesor.id));
+});
+
+// Baja lógica / reactivación: también bloquea o habilita el inicio de sesión
+router.patch('/:id/estado', async (req, res) => {
+  const { estado } = req.body;
+  if (!['Activo', 'Inactivo'].includes(estado)) {
+    return res.status(400).json({ message: "El estado debe ser 'Activo' o 'Inactivo'" });
+  }
+
+  const db = await dbPromise;
+  const profesor = await db.get('SELECT * FROM profesores WHERE id = ?', req.params.id);
+  if (!profesor) return res.status(404).json({ message: 'Profesor no encontrado' });
+  if (profesor.usuario_id === req.user.id) {
+    return res.status(400).json({ message: 'No podés darte de baja a vos mismo' });
+  }
+
+  await db.run('UPDATE profesores SET estado = ? WHERE id = ?', [estado, profesor.id]);
+  if (profesor.usuario_id) {
+    await db.run('UPDATE usuarios SET activo = ? WHERE id = ?', [estado === 'Activo' ? 1 : 0, profesor.usuario_id]);
+  }
+  res.json(await db.get('SELECT * FROM profesores WHERE id = ?', profesor.id));
+});
+
+// Eliminación definitiva, solo para profesores cargados por error: si tiene
+// cualquier registro asociado se rechaza y corresponde la baja lógica.
+router.delete('/:id', async (req, res) => {
+  const db = await dbPromise;
+  const profesor = await db.get('SELECT * FROM profesores WHERE id = ?', req.params.id);
+  if (!profesor) return res.status(404).json({ message: 'Profesor no encontrado' });
+  if (profesor.usuario_id === req.user.id) {
+    return res.status(400).json({ message: 'No podés eliminarte a vos mismo' });
+  }
+
+  // Las notificaciones son avisos para el propio usuario: no cuentan y se borran con él.
+  const tieneDatos = await tieneDatosAsociados(db, { tabla: 'profesores', nombres: COLUMNAS_PROFESOR, id: profesor.id })
+    || (profesor.usuario_id && await tieneDatosAsociados(db, {
+      tabla: 'usuarios', nombres: COLUMNAS_USUARIO, id: profesor.usuario_id, excluir: ['profesores', 'notificaciones']
+    }));
+  if (tieneDatos) {
+    return res.status(409).json({
+      message: 'No se puede eliminar: el profesor tiene datos asociados. Usá "Dar de baja".'
+    });
+  }
+
+  await db.run('DELETE FROM profesores WHERE id = ?', profesor.id);
+  if (profesor.usuario_id) {
+    await db.run('DELETE FROM notificaciones WHERE usuario_id = ?', profesor.usuario_id);
+    await db.run('DELETE FROM usuarios WHERE id = ?', profesor.usuario_id);
+  }
+  res.json({ message: 'Profesor eliminado' });
 });
 
 function solapan(inicioA, finA, inicioB, finB) {
