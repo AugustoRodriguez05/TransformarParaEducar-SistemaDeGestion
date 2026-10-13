@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { apiFetch } from '../api';
+import TituloSeccion from './TituloSeccion';
 
-export default function CatalogoEditor({ titulo, ruta }) {
+export default function CatalogoEditor({ titulo, ruta, icono }) {
   const [items, setItems] = useState([]);
   const [nuevo, setNuevo] = useState('');
   const [editandoId, setEditandoId] = useState(null);
@@ -40,33 +42,33 @@ export default function CatalogoEditor({ titulo, ruta }) {
 
   return (
     <div className="card">
-      <h3>{titulo}</h3>
+      <TituloSeccion icono={icono}>{titulo}</TituloSeccion>
 
       <form className="servicios-form" onSubmit={agregar}>
         <input value={nuevo} onChange={(e) => setNuevo(e.target.value)} placeholder="Nombre nuevo" required />
-        <button type="submit">Agregar</button>
+        <button type="submit"><Plus size={18} aria-hidden="true" />Agregar</button>
       </form>
 
       {error && <p className="error">{error}</p>}
 
       {items.length === 0 ? <p>No hay elementos cargados.</p> : (
-        <ul className="servicios-lista">
+        <ul className="servicios-lista lista-catalogo">
           {items.map((item) => (
             <li key={item.id}>
               {editandoId === item.id ? (
                 <>
                   <input value={nombreEditado} onChange={(e) => setNombreEditado(e.target.value)} />
                   <span className="actions">
-                    <button className="link" onClick={() => guardarEdicion(item.id)}>Guardar</button>
-                    <button className="link" onClick={() => setEditandoId(null)}>Cancelar</button>
+                    <button className="accion accion-confirmar" onClick={() => guardarEdicion(item.id)}><Save size={16} aria-hidden="true" />Guardar</button>
+                    <button className="accion accion-cancelar" onClick={() => setEditandoId(null)}><X size={16} aria-hidden="true" />Cancelar</button>
                   </span>
                 </>
               ) : (
                 <>
                   <span>{item.nombre}</span>
                   <span className="actions">
-                    <button className="link" onClick={() => { setEditandoId(item.id); setNombreEditado(item.nombre); setError(''); }}>Editar</button>
-                    <button className="link" onClick={() => ejecutar(`/api/${ruta}/${item.id}`, 'DELETE')}>Eliminar</button>
+                    <button className="accion accion-editar" onClick={() => { setEditandoId(item.id); setNombreEditado(item.nombre); setError(''); }}><Pencil size={16} aria-hidden="true" />Editar</button>
+                    <button className="accion accion-eliminar" onClick={() => ejecutar(`/api/${ruta}/${item.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
                   </span>
                 </>
               )}

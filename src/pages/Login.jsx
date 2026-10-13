@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 
 export default function Login() {
@@ -45,7 +46,7 @@ export default function Login() {
 
         {error && <p className="error">{error}</p>}
 
-        <button type="submit" disabled={loading}>{loading ? 'Ingresando…' : 'Ingresar'}</button>
+        <button type="submit" disabled={loading}><LogIn size={18} aria-hidden="true" />{loading ? 'Ingresando…' : 'Ingresar'}</button>
       </form>
     </div>
   );

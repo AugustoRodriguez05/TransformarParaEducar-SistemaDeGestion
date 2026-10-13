@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link, Save, User, UserPlus, UsersRound, X } from 'lucide-react';
 import { apiFetch } from '../api';
+import TituloSeccion from '../components/TituloSeccion';
 
 const PADRE_VACIO = { nombre: '', apellido: '', email: '', password: '' };
 
@@ -60,13 +62,13 @@ export default function Padres() {
   return (
     <div>
       <div className="page-header">
-        <h2>Padres y tutores</h2>
-        <button onClick={() => { setFormVisible(true); setError(''); setMensaje(''); }}>Nuevo padre/tutor</button>
+        <TituloSeccion principal icono={UsersRound}>Padres y tutores</TituloSeccion>
+        <button onClick={() => { setFormVisible(true); setError(''); setMensaje(''); }}><UserPlus size={18} aria-hidden="true" />Nuevo padre/tutor</button>
       </div>
 
       {formVisible && (
         <form className="card form-card" onSubmit={crearPadre}>
-          <h3>Alta de padre/tutor</h3>
+          <TituloSeccion icono={UserPlus}>Alta de padre/tutor</TituloSeccion>
           <div className="form-grid">
             <label>Nombre<input value={formData.nombre} onChange={handleChange('nombre')} required /></label>
             <label>Apellido<input value={formData.apellido} onChange={handleChange('apellido')} required /></label>
@@ -74,7 +76,7 @@ export default function Padres() {
             <label>Contraseña de acceso<input type="password" value={formData.password} onChange={handleChange('password')} required /></label>
           </div>
           <div className="form-actions">
-            <button type="submit">Guardar</button>
+            <button type="submit"><Save size={18} aria-hidden="true" />Guardar</button>
             <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
           </div>
         </form>
@@ -87,14 +89,14 @@ export default function Padres() {
         const disponibles = alumnos.filter((a) => !p.hijos.some((h) => h.id === a.id));
         return (
           <div className="card" key={p.id}>
-            <h3>{p.apellido}, {p.nombre} <small>{p.email}</small></h3>
+            <TituloSeccion icono={User}>{p.apellido}, {p.nombre} <small>{p.email}</small></TituloSeccion>
 
             {p.hijos.length === 0 ? <p>Sin alumnos vinculados.</p> : (
               <ul className="servicios-lista">
                 {p.hijos.map((h) => (
                   <li key={h.id}>
                     <span>{h.apellido}, {h.nombre} — legajo {h.legajo}</span>
-                    <button className="link" onClick={() => ejecutar(`/api/padres/${p.id}/alumnos/${h.id}`, 'DELETE')}>Quitar</button>
+                    <button className="accion accion-cancelar" onClick={() => ejecutar(`/api/padres/${p.id}/alumnos/${h.id}`, 'DELETE')}><X size={16} aria-hidden="true" />Quitar</button>
                   </li>
                 ))}
               </ul>
@@ -110,7 +112,7 @@ export default function Padres() {
                   <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} ({a.legajo})</option>
                 ))}
               </select>
-              <button disabled={!alumnoAVincular[p.id]} onClick={() => vincular(p)}>Vincular</button>
+              <button disabled={!alumnoAVincular[p.id]} onClick={() => vincular(p)}><Link size={18} aria-hidden="true" />Vincular</button>
             </div>
           </div>
         );

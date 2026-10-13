@@ -1,4 +1,6 @@
+import { LayoutDashboard } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
+import TituloSeccion from '../components/TituloSeccion';
 
 const MENSAJES = {
   administrador: 'Desde acá gestionás el legajo de alumnos y la planta de profesores.',
@@ -11,7 +13,7 @@ export default function Dashboard() {
 
   return (
     <div className="card">
-      <h2>Hola, {user.nombre}</h2>
+      <TituloSeccion principal icono={LayoutDashboard}>Hola, {user.nombre}</TituloSeccion>
       <p>{MENSAJES[user.rol]}</p>
     </div>
   );

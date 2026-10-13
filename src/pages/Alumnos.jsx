@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
+import {
+  ArrowDown, BadgeCheck, ClipboardList, FileText, GraduationCap, Hash, IdCard,
+  Pencil, RotateCcw, Save, Search, User, UserPlus, Users
+} from 'lucide-react';
 import { apiFetch } from '../api';
 import ServiciosAlumno from '../components/ServiciosAlumno';
+import ThIcono from '../components/ThIcono';
+import TituloSeccion from '../components/TituloSeccion';
 
 const ALUMNO_VACIO = { nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '' };
 
@@ -103,18 +109,21 @@ export default function Alumnos() {
   return (
     <div>
       <div className="page-header">
-        <h2>Legajo de alumnos</h2>
-        <button onClick={abrirNuevo}>Nuevo alumno</button>
+        <TituloSeccion principal icono={Users}>Legajo de alumnos</TituloSeccion>
+        <button onClick={abrirNuevo}><UserPlus size={18} aria-hidden="true" />Nuevo alumno</button>
       </div>
 
       <form className="search-bar" onSubmit={handleBuscar}>
-        <input
-          type="text"
-          placeholder="Buscar por DNI, apellido o legajo…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button type="submit">Buscar</button>
+        <span className="search-field">
+          <Search size={20} aria-hidden="true" />
+          <input
+            type="text"
+            placeholder="Buscar por DNI, apellido o legajo…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </span>
+        <button type="submit"><Search size={18} aria-hidden="true" />Buscar</button>
         {query && (
           <button
             type="button"
@@ -130,7 +139,7 @@ export default function Alumnos() {
 
       {formVisible && (
         <form className="card form-card" onSubmit={handleSubmit}>
-          <h3>{editingId ? 'Editar legajo' : 'Alta de alumno'}</h3>
+          <TituloSeccion icono={editingId ? Pencil : UserPlus}>{editingId ? 'Editar legajo' : 'Alta de alumno'}</TituloSeccion>
           <div className="form-grid">
             <label>
               Nombre
@@ -162,7 +171,7 @@ export default function Alumnos() {
           {error && <p className="error">{error}</p>}
 
           <div className="form-actions">
-            <button type="submit">{editingId ? 'Guardar cambios' : 'Guardar alumno'}</button>
+            <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar alumno'}</button>
             <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
           </div>
         </form>
@@ -176,11 +185,11 @@ export default function Alumnos() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Legajo</th>
-              <th>Apellido y Nombre</th>
-              <th>DNI</th>
-              <th>Curso</th>
-              <th>Estado</th>
+              <ThIcono icono={Hash}>Legajo</ThIcono>
+              <ThIcono icono={User}>Apellido y Nombre</ThIcono>
+              <ThIcono icono={FileText}>DNI</ThIcono>
+              <ThIcono icono={GraduationCap}>Curso</ThIcono>
+              <ThIcono icono={BadgeCheck}>Estado</ThIcono>
               <th></th>
             </tr>
           </thead>
@@ -190,15 +199,17 @@ export default function Alumnos() {
                 <td>{a.legajo}</td>
                 <td>{a.apellido}, {a.nombre}</td>
                 <td>{a.dni}</td>
-                <td>{a.curso_nombre || '—'}</td>
+                <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
                 <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
                 <td className="actions">
-                  <button className="link" onClick={() => abrirEdicion(a)}>Editar</button>
+                  <button className="accion accion-editar" onClick={() => abrirEdicion(a)}><Pencil size={16} aria-hidden="true" />Editar</button>
                   {a.estado === 'Activo' && (
-                    <button className="link" onClick={() => setAlumnoServicios(a)}>Servicios</button>
+                    <button className="accion accion-ver" onClick={() => setAlumnoServicios(a)}><IdCard size={16} aria-hidden="true" />Servicios</button>
                   )}
-                  <button className="link" onClick={() => cambiarEstado(a)}>
-                    {a.estado === 'Activo' ? 'Dar de baja' : 'Reactivar'}
+                  <button className={a.estado === 'Activo' ? 'accion accion-baja' : 'accion accion-confirmar'} onClick={() => cambiarEstado(a)}>
+                    {a.estado === 'Activo'
+                      ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                      : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
                   </button>
                 </td>
               </tr>
@@ -210,7 +221,7 @@ export default function Alumnos() {
       {alumnoServicios && (
         <div className="card">
           <div className="page-header">
-            <h3>Servicios de {alumnoServicios.nombre} {alumnoServicios.apellido}</h3>
+            <TituloSeccion icono={ClipboardList}>Servicios de {alumnoServicios.nombre} {alumnoServicios.apellido}</TituloSeccion>
             <button className="secondary" onClick={() => setAlumnoServicios(null)}>Cerrar</button>
           </div>
           <ServiciosAlumno key={alumnoServicios.id} alumnoId={alumnoServicios.id} />
