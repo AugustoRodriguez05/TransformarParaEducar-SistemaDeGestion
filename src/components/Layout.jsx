@@ -50,7 +50,10 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div className="brand">Sistema de Gestión · Educar Para Transformar</div>
+        <div className="brand">
+          <img src="/logo.png" alt="Logo Educar Para Transformar" className="brand-logo" />
+          <span>Sistema de Gestión · Educar Para Transformar</span>
+        </div>
         {user && (
           <nav className="nav">
             {items.map((item) => (

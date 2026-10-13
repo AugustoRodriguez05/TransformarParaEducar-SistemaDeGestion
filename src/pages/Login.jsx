@@ -29,6 +29,7 @@ export default function Login() {
   return (
     <div className="login-page">
       <form className="card login-card" onSubmit={handleSubmit}>
+        <img src="/logo.png" alt="Logo Educar Para Transformar" className="login-logo" />
         <h1>Sistema de Gestión</h1>
         <p className="subtitle">Educar Para Transformar</p>
 

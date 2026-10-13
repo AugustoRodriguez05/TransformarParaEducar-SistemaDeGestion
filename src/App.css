@@ -16,6 +16,20 @@
 
 .brand {
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  height: 44px;
+  width: auto;
+}
+
+.login-logo {
+  height: 96px;
+  width: auto;
+  align-self: center;
 }
 
 .nav {
