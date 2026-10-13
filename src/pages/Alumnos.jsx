@@ -4,6 +4,7 @@ import {
   Pencil, RotateCcw, Save, Search, Trash2, User, UserPlus, Users
 } from 'lucide-react';
 import { apiFetch } from '../api';
+import Modal from '../components/Modal';
 import ServiciosAlumno from '../components/ServiciosAlumno';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
@@ -260,13 +261,13 @@ export default function Alumnos() {
       )}
 
       {alumnoServicios && (
-        <div className="card">
-          <div className="page-header">
-            <TituloSeccion icono={ClipboardList}>Servicios de {alumnoServicios.nombre} {alumnoServicios.apellido}</TituloSeccion>
-            <button className="secondary" onClick={() => setAlumnoServicios(null)}>Cerrar</button>
-          </div>
+        <Modal
+          icono={ClipboardList}
+          titulo={<>Servicios de {alumnoServicios.nombre} {alumnoServicios.apellido}</>}
+          onClose={() => setAlumnoServicios(null)}
+        >
           <ServiciosAlumno key={alumnoServicios.id} alumnoId={alumnoServicios.id} />
-        </div>
+        </Modal>
       )}
     </div>
   );
