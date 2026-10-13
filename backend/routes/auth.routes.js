@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import dbPromise from '../db.js';
+import { crearToken } from '../token.js';
 
 const router = express.Router();
 
@@ -25,7 +26,8 @@ router.post('/login', async (req, res) => {
     nombre: usuario.nombre,
     apellido: usuario.apellido,
     email: usuario.email,
-    rol: usuario.rol
+    rol: usuario.rol,
+    token: crearToken(usuario)
   });
 });
 
