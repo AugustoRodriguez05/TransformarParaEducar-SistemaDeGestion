@@ -14,6 +14,14 @@ const dbPromise = open({
 
 const SQL_DIAS = DIAS.map((d) => `'${d}'`).join(',');
 
+// Agrega una columna solo si todavía no existe (las bases que ya tienen datos no la tienen).
+async function agregarColumna(db, tabla, columna, definicion) {
+  const columnas = await db.all(`PRAGMA table_info(${tabla})`);
+  if (!columnas.some((c) => c.name === columna)) {
+    await db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);
+  }
+}
+
 export async function initDb() {
   const db = await dbPromise;
   await db.exec('PRAGMA foreign_keys = ON;');
@@ -156,6 +164,106 @@ export async function initDb() {
   // Migración: antes este campo era un 0/1; ahora guarda el año del ciclo en que se inscribió.
   const { valor } = await db.get("SELECT valor FROM configuracion WHERE clave = 'ciclo_lectivo'");
   await db.run('UPDATE alumnos SET inscripto_ciclo_lectivo = ? WHERE inscripto_ciclo_lectivo = 1', Number(valor));
+  // ---------- Parte 3: cuotas, facturas y pagos ----------
+
+  // Columnas nuevas en tablas existentes
+  await agregarColumna(db, 'cursos', 'nivel', 'TEXT');
+  await agregarColumna(db, 'deportes', 'profesor_id', 'INTEGER REFERENCES profesores(id)');
+  for (const tabla of ['inscripciones_deportivas', 'inscripciones_transporte', 'inscripciones_comedor']) {
+    await agregarColumna(db, tabla, 'fecha_alta', 'TEXT');
+    await agregarColumna(db, tabla, 'fecha_baja', 'TEXT');
+  }
+
+  // Tablas nuevas
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS tarifas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT NOT NULL CHECK (tipo IN ('cuota', 'deporte', 'transporte', 'comedor')),
+      referencia_id INTEGER,
+      importe REAL NOT NULL CHECK (importe >= 0),
+      vigente_desde TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS cuotas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
+      periodo TEXT NOT NULL,
+      vencimiento TEXT NOT NULL,
+      total REAL NOT NULL DEFAULT 0,
+      estado TEXT NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pago parcial', 'Pagada', 'Vencida')),
+      UNIQUE (alumno_id, periodo)
+    );
+
+    CREATE TABLE IF NOT EXISTS items_cuota (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cuota_id INTEGER NOT NULL REFERENCES cuotas(id),
+      concepto TEXT NOT NULL CHECK (concepto IN ('cuota', 'deporte', 'transporte', 'comedor')),
+      referencia_id INTEGER,
+      descripcion TEXT NOT NULL,
+      importe REAL NOT NULL CHECK (importe >= 0),
+      estado TEXT NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pago informado', 'Pagado'))
+    );
+
+    CREATE TABLE IF NOT EXISTS facturas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cuota_id INTEGER UNIQUE NOT NULL REFERENCES cuotas(id),
+      numero TEXT UNIQUE NOT NULL,
+      fecha_emision TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      total REAL NOT NULL,
+      archivo_pdf TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS ordenes_pago (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      numero TEXT UNIQUE NOT NULL,
+      factura_id INTEGER NOT NULL REFERENCES facturas(id),
+      padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      total REAL NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS orden_pago_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      orden_pago_id INTEGER NOT NULL REFERENCES ordenes_pago(id),
+      item_cuota_id INTEGER NOT NULL REFERENCES items_cuota(id),
+      UNIQUE (orden_pago_id, item_cuota_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS comprobantes_pago (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      factura_id INTEGER NOT NULL REFERENCES facturas(id),
+      padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      numero_operacion TEXT UNIQUE NOT NULL,
+      importe REAL NOT NULL CHECK (importe > 0),
+      fecha_transferencia TEXT NOT NULL,
+      archivo TEXT NOT NULL,
+      fecha_carga TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS codigos_recuperacion (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      codigo TEXT NOT NULL,
+      vence TEXT NOT NULL,
+      usado INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS envios_mail (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      tipo TEXT NOT NULL CHECK (tipo IN ('recordatorio', 'deuda')),
+      periodo TEXT NOT NULL,
+      estado TEXT NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Enviado', 'Error')),
+      intentos INTEGER NOT NULL DEFAULT 0,
+      fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (padre_usuario_id, tipo, periodo)
+    );
+
+    CREATE TABLE IF NOT EXISTS feriados (
+      fecha TEXT PRIMARY KEY,
+      descripcion TEXT NOT NULL
+    );
+  `);
 }
 
 export default dbPromise;
