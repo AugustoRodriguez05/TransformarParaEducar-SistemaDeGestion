@@ -223,43 +223,45 @@ export default function Alumnos() {
       {buscado && alumnos.length === 0 && <p>No se encontraron alumnos.</p>}
 
       {alumnos.length > 0 && (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <ThIcono icono={Hash}>Legajo</ThIcono>
-              <ThIcono icono={User}>Apellido y Nombre</ThIcono>
-              <ThIcono icono={FileText}>DNI</ThIcono>
-              <ThIcono icono={GraduationCap}>Curso</ThIcono>
-              <ThIcono icono={BadgeCheck}>Estado</ThIcono>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {alumnos.map((a) => (
-              <tr key={a.id} className={a.estado === 'Inactivo' ? 'row-inactivo' : ''}>
-                <td>{a.legajo}</td>
-                <td>{a.apellido}, {a.nombre}</td>
-                <td>{a.dni}</td>
-                <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
-                <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
-                <td>
-                  <div className="actions">
-                    <button className="btn-accion btn-editar" onClick={() => abrirEdicion(a)}><Pencil size={16} aria-hidden="true" />Editar</button>
-                    {a.estado === 'Activo' && (
-                      <button className="btn-accion btn-ver" onClick={() => setAlumnoServicios(a)}><IdCard size={16} aria-hidden="true" />Servicios</button>
-                    )}
-                    <button className={a.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(a)}>
-                      {a.estado === 'Activo'
-                        ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
-                        : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
-                    </button>
-                    <button className="btn-accion btn-eliminar" onClick={() => eliminar(a)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
-                  </div>
-                </td>
+        <div className="tabla-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <ThIcono icono={Hash}>Legajo</ThIcono>
+                <ThIcono icono={User}>Apellido y Nombre</ThIcono>
+                <ThIcono icono={FileText}>DNI</ThIcono>
+                <ThIcono icono={GraduationCap}>Curso</ThIcono>
+                <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {alumnos.map((a) => (
+                <tr key={a.id} className={a.estado === 'Inactivo' ? 'row-inactivo' : ''}>
+                  <td>{a.legajo}</td>
+                  <td>{a.apellido}, {a.nombre}</td>
+                  <td>{a.dni}</td>
+                  <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
+                  <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
+                  <td>
+                    <div className="actions">
+                      <button className="btn-accion btn-editar" onClick={() => abrirEdicion(a)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                      {a.estado === 'Activo' && (
+                        <button className="btn-accion btn-ver" onClick={() => setAlumnoServicios(a)}><IdCard size={16} aria-hidden="true" />Servicios</button>
+                      )}
+                      <button className={a.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(a)}>
+                        {a.estado === 'Activo'
+                          ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                          : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
+                      </button>
+                      <button className="btn-accion btn-eliminar" onClick={() => eliminar(a)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {alumnoServicios && (

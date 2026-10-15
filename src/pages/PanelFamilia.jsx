@@ -75,26 +75,28 @@ export default function PanelFamilia() {
           <TituloSeccion nivel="h4" icono={BookOpen}>Materias y profesores</TituloSeccion>
           {detalle.materias.length === 0 && <p>Todavía no hay materias asignadas a este curso.</p>}
           {detalle.materias.length > 0 && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <ThIcono icono={BookOpen}>Materia</ThIcono>
-                  <ThIcono icono={User}>Profesor</ThIcono>
-                  <ThIcono icono={Calendar}>Día</ThIcono>
-                  <ThIcono icono={Clock}>Horario</ThIcono>
-                </tr>
-              </thead>
-              <tbody>
-                {detalle.materias.map((m, idx) => (
-                  <tr key={idx}>
-                    <td>{m.materia_nombre}</td>
-                    <td>{m.profesor_apellido}, {m.profesor_nombre}</td>
-                    <td>{m.dia}</td>
-                    <td>{m.hora_inicio} - {m.hora_fin}</td>
+            <div className="tabla-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <ThIcono icono={BookOpen}>Materia</ThIcono>
+                    <ThIcono icono={User}>Profesor</ThIcono>
+                    <ThIcono icono={Calendar}>Día</ThIcono>
+                    <ThIcono icono={Clock}>Horario</ThIcono>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {detalle.materias.map((m, idx) => (
+                    <tr key={idx}>
+                      <td>{m.materia_nombre}</td>
+                      <td>{m.profesor_apellido}, {m.profesor_nombre}</td>
+                      <td>{m.dia}</td>
+                      <td>{m.hora_inicio} - {m.hora_fin}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           <TituloSeccion nivel="h4" icono={ClipboardList}>Servicios del alumno</TituloSeccion>

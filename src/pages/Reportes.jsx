@@ -113,16 +113,18 @@ export default function Reportes() {
           {reporte.filas.length === 0 ? (
             <p>No hay resultados para los filtros seleccionados.</p>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>{reporte.columnas.map((c) => <th key={c.key}>{c.label}</th>)}</tr>
-              </thead>
-              <tbody>
-                {reporte.filas.map((f, i) => (
-                  <tr key={i}>{reporte.columnas.map((c) => <td key={c.key}>{f[c.key]}</td>)}</tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="tabla-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>{reporte.columnas.map((c) => <th key={c.key}>{c.label}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {reporte.filas.map((f, i) => (
+                    <tr key={i}>{reporte.columnas.map((c) => <td key={c.key}>{f[c.key]}</td>)}</tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

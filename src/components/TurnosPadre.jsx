@@ -135,32 +135,34 @@ export default function TurnosPadre() {
 
       <TituloSeccion icono={CalendarCheck}>Mis turnos</TituloSeccion>
       {misTurnos.length === 0 ? <p>No tenés turnos solicitados.</p> : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <ThIcono icono={Calendar}>Fecha</ThIcono>
-              <ThIcono icono={Clock}>Horario</ThIcono>
-              <ThIcono icono={User}>Profesor</ThIcono>
-              <ThIcono icono={User}>Alumno</ThIcono>
-              <ThIcono icono={BadgeCheck}>Estado</ThIcono>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {misTurnos.map((t) => (
-              <tr key={t.id}>
-                <td>{formatearFecha(t.fecha)}</td>
-                <td>{t.hora_inicio} - {t.hora_fin}</td>
-                <td>{t.profesor_nombre}</td>
-                <td>{t.alumno_nombre}</td>
-                <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
-                <td>
-                  {t.estado !== 'Cancelado' && <button className="btn-accion btn-cancelar" onClick={() => cancelar(t.id)}><X size={16} aria-hidden="true" />Cancelar</button>}
-                </td>
+        <div className="tabla-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <ThIcono icono={Calendar}>Fecha</ThIcono>
+                <ThIcono icono={Clock}>Horario</ThIcono>
+                <ThIcono icono={User}>Profesor</ThIcono>
+                <ThIcono icono={User}>Alumno</ThIcono>
+                <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {misTurnos.map((t) => (
+                <tr key={t.id}>
+                  <td>{formatearFecha(t.fecha)}</td>
+                  <td>{t.hora_inicio} - {t.hora_fin}</td>
+                  <td>{t.profesor_nombre}</td>
+                  <td>{t.alumno_nombre}</td>
+                  <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
+                  <td>
+                    {t.estado !== 'Cancelado' && <button className="btn-accion btn-cancelar" onClick={() => cancelar(t.id)}><X size={16} aria-hidden="true" />Cancelar</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

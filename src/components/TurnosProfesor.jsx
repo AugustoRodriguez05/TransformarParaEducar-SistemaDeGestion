@@ -103,44 +103,46 @@ export default function TurnosProfesor() {
 
       <TituloSeccion icono={Inbox}>Solicitudes de turno</TituloSeccion>
       {turnos.length === 0 ? <p>No tenés solicitudes de turno.</p> : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <ThIcono icono={Calendar}>Fecha</ThIcono>
-              <ThIcono icono={Clock}>Horario</ThIcono>
-              <ThIcono icono={User}>Familia</ThIcono>
-              <ThIcono icono={User}>Alumno</ThIcono>
-              <ThIcono icono={MessageSquare}>Motivo</ThIcono>
-              <ThIcono icono={BadgeCheck}>Estado</ThIcono>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {turnos.map((t) => (
-              <tr key={t.id}>
-                <td>{formatearFecha(t.fecha)}</td>
-                <td>{t.hora_inicio} - {t.hora_fin}</td>
-                <td>{t.padre_nombre}</td>
-                <td>{t.alumno_nombre}</td>
-                <td>{t.motivo || '—'}</td>
-                <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
-                <td>
-                  <div className="actions">
-                    {t.estado === 'Pendiente' && (
-                      <button className="btn-accion btn-confirmar" onClick={() => ejecutar(`/api/turnos/${t.id}/confirmar`, 'PATCH')}><Check size={16} aria-hidden="true" />Confirmar</button>
-                    )}
-                    {t.estado !== 'Cancelado' && (
-                      <>
-                        <button className="btn-accion btn-ver" onClick={() => { setReprogramando(t.id); setNuevaFranja(''); }}><CalendarClock size={16} aria-hidden="true" />Reprogramar</button>
-                        <button className="btn-accion btn-cancelar" onClick={() => ejecutar(`/api/turnos/${t.id}/cancelar`, 'PATCH')}><X size={16} aria-hidden="true" />Cancelar</button>
-                      </>
-                    )}
-                  </div>
-                </td>
+        <div className="tabla-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <ThIcono icono={Calendar}>Fecha</ThIcono>
+                <ThIcono icono={Clock}>Horario</ThIcono>
+                <ThIcono icono={User}>Familia</ThIcono>
+                <ThIcono icono={User}>Alumno</ThIcono>
+                <ThIcono icono={MessageSquare}>Motivo</ThIcono>
+                <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {turnos.map((t) => (
+                <tr key={t.id}>
+                  <td>{formatearFecha(t.fecha)}</td>
+                  <td>{t.hora_inicio} - {t.hora_fin}</td>
+                  <td>{t.padre_nombre}</td>
+                  <td>{t.alumno_nombre}</td>
+                  <td>{t.motivo || '—'}</td>
+                  <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
+                  <td>
+                    <div className="actions">
+                      {t.estado === 'Pendiente' && (
+                        <button className="btn-accion btn-confirmar" onClick={() => ejecutar(`/api/turnos/${t.id}/confirmar`, 'PATCH')}><Check size={16} aria-hidden="true" />Confirmar</button>
+                      )}
+                      {t.estado !== 'Cancelado' && (
+                        <>
+                          <button className="btn-accion btn-ver" onClick={() => { setReprogramando(t.id); setNuevaFranja(''); }}><CalendarClock size={16} aria-hidden="true" />Reprogramar</button>
+                          <button className="btn-accion btn-cancelar" onClick={() => ejecutar(`/api/turnos/${t.id}/cancelar`, 'PATCH')}><X size={16} aria-hidden="true" />Cancelar</button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {reprogramando && (

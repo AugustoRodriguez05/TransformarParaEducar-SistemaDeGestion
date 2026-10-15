@@ -300,6 +300,22 @@ label {
   overflow: hidden;
 }
 
+/* Contenedor de cada tabla: si no entra en la pantalla se desplaza horizontalmente
+   en vez de apretar las columnas. Lleva el fondo, los bordes y la sombra de la tabla,
+   porque el desplazamiento recortaría la sombra de lo que tiene adentro. */
+.tabla-scroll {
+  overflow-x: auto;
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.tabla-scroll > .data-table { box-shadow: none; }
+
+/* Acciones dentro de tablas: más compactas y en una sola línea (en celular pueden bajar) */
+.data-table .actions { flex-wrap: nowrap; }
+.data-table button.btn-accion { padding: 6px 12px; font-size: 0.875rem; }
+
 .data-table th, .data-table td {
   text-align: left;
   padding: 12px 16px;
@@ -322,6 +338,7 @@ label {
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .data-table tbody tr:last-child td { border-bottom: none; }
@@ -342,7 +359,9 @@ label {
 /* ---------- Etiquetas de estado ---------- */
 
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
   padding: 2px 10px;
   border-radius: 999px;
   font-size: 0.8rem;
@@ -673,6 +692,7 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
   .modal-fondo { padding: 12px; }
   .modal-ventana { padding: 16px; }
   .padre-vincular { flex-wrap: wrap; }
+  .data-table .actions { flex-wrap: wrap; }
   .topbar { flex-direction: column; align-items: flex-start; gap: 12px; position: static; }
   .nav { flex-wrap: wrap; }
   .brand { white-space: normal; }

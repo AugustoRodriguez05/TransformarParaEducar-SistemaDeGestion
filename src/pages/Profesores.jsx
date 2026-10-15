@@ -44,26 +44,28 @@ function VistaProfesor() {
       {error && <p className="error">{error}</p>}
       {asignaciones.length === 0 && !error && <p>Todavía no tenés materias asignadas.</p>}
       {asignaciones.length > 0 && (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <ThIcono icono={BookOpen}>Materia</ThIcono>
-              <ThIcono icono={GraduationCap}>Curso</ThIcono>
-              <ThIcono icono={Calendar}>Día</ThIcono>
-              <ThIcono icono={Clock}>Horario</ThIcono>
-            </tr>
-          </thead>
-          <tbody>
-            {asignaciones.map((a) => (
-              <tr key={a.id}>
-                <td>{a.materia_nombre}</td>
-                <td><span className="badge curso">{a.curso_nombre}</span></td>
-                <td>{a.dia}</td>
-                <td>{a.hora_inicio} - {a.hora_fin}</td>
+        <div className="tabla-scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <ThIcono icono={BookOpen}>Materia</ThIcono>
+                <ThIcono icono={GraduationCap}>Curso</ThIcono>
+                <ThIcono icono={Calendar}>Día</ThIcono>
+                <ThIcono icono={Clock}>Horario</ThIcono>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {asignaciones.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.materia_nombre}</td>
+                  <td><span className="badge curso">{a.curso_nombre}</span></td>
+                  <td>{a.dia}</td>
+                  <td>{a.hora_inicio} - {a.hora_fin}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
@@ -270,39 +272,41 @@ function VistaAdministrador() {
 
       {message && <p className="success">{message}</p>}
 
-      <table className="data-table">
-        <thead>
-          <tr>
-            <ThIcono icono={User}>Apellido y Nombre</ThIcono>
-            <ThIcono icono={FileText}>DNI</ThIcono>
-            <ThIcono icono={Mail}>Email</ThIcono>
-            <ThIcono icono={BadgeCheck}>Estado</ThIcono>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {profesores.map((p) => (
-            <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
-              <td>{p.apellido}, {p.nombre}</td>
-              <td>{p.dni}</td>
-              <td>{p.email}</td>
-              <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
-              <td>
-                <div className="actions">
-                  <button className="btn-accion btn-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button>
-                  <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
-                  <button className={p.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(p)}>
-                    {p.estado === 'Activo'
-                      ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
-                      : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
-                  </button>
-                  <button className="btn-accion btn-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
-                </div>
-              </td>
+      <div className="tabla-scroll">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <ThIcono icono={User}>Apellido y Nombre</ThIcono>
+              <ThIcono icono={FileText}>DNI</ThIcono>
+              <ThIcono icono={Mail}>Email</ThIcono>
+              <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {profesores.map((p) => (
+              <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
+                <td>{p.apellido}, {p.nombre}</td>
+                <td>{p.dni}</td>
+                <td>{p.email}</td>
+                <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
+                <td>
+                  <div className="actions">
+                    <button className="btn-accion btn-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button>
+                    <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                    <button className={p.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(p)}>
+                      {p.estado === 'Activo'
+                        ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                        : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
+                    </button>
+                    <button className="btn-accion btn-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {seleccionado && (
         <Modal
@@ -313,26 +317,28 @@ function VistaAdministrador() {
 
           {asignaciones.length === 0 && <p>Sin materias asignadas todavía.</p>}
           {asignaciones.length > 0 && (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <ThIcono icono={BookOpen}>Materia</ThIcono>
-                  <ThIcono icono={GraduationCap}>Curso</ThIcono>
-                  <ThIcono icono={Calendar}>Día</ThIcono>
-                  <ThIcono icono={Clock}>Horario</ThIcono>
-                </tr>
-              </thead>
-              <tbody>
-                {asignaciones.map((a) => (
-                  <tr key={a.id}>
-                    <td>{a.materia_nombre}</td>
-                    <td><span className="badge curso">{a.curso_nombre}</span></td>
-                    <td>{a.dia}</td>
-                    <td>{a.hora_inicio} - {a.hora_fin}</td>
+            <div className="tabla-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <ThIcono icono={BookOpen}>Materia</ThIcono>
+                    <ThIcono icono={GraduationCap}>Curso</ThIcono>
+                    <ThIcono icono={Calendar}>Día</ThIcono>
+                    <ThIcono icono={Clock}>Horario</ThIcono>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {asignaciones.map((a) => (
+                    <tr key={a.id}>
+                      <td>{a.materia_nombre}</td>
+                      <td><span className="badge curso">{a.curso_nombre}</span></td>
+                      <td>{a.dia}</td>
+                      <td>{a.hora_inicio} - {a.hora_fin}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           <form className="form-grid asig-form" onSubmit={handleAsigSubmit}>
