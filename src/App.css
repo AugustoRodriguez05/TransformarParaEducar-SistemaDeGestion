@@ -512,6 +512,134 @@ label {
   max-width: 520px;
 }
 
+/* ---------- Padres: tarjeta de cada padre/tutor ---------- */
+
+.padre-encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.padre-identidad {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.padre-identidad h3 { margin: 0; line-height: 1.4; }
+
+.padre-avatar {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: #047857;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.padre-nombre { font-weight: 700; }
+
+.padre-email {
+  color: #64748b;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 400;
+  word-break: break-all;
+}
+
+.padre-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button.btn-padre {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+button.btn-padre-editar { background: #e0ecff; color: #1d4ed8; }
+button.btn-padre-editar:hover { background: #c7dbff; }
+
+button.btn-padre-baja { background: #fee2e2; color: #b91c1c; }
+button.btn-padre-baja:hover { background: #fed4d4; }
+
+button.btn-padre-reactivar { background: #d1fae5; color: #047857; }
+button.btn-padre-reactivar:hover { background: #c3f5dc; }
+
+button.btn-padre-eliminar { background: #b91c1c; color: white; }
+button.btn-padre-eliminar:hover { background: #991b1b; }
+
+.padre-hijos {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.padre-hijos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.padre-hijos li + li { border-top: 1px solid var(--border); }
+
+.padre-hijo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.padre-hijo-icono {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.padre-vincular {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 520px;
+}
+
+.padre-select {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.padre-select svg {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.padre-select select { padding-left: 40px; }
+
 /* ---------- Ventana emergente (modal) ---------- */
 
 .modal-fondo {
@@ -562,6 +690,7 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
 @media (max-width: 600px) {
   .modal-fondo { padding: 12px; }
   .modal-ventana { padding: 16px; }
+  .padre-vincular { flex-wrap: wrap; }
   .topbar { flex-direction: column; align-items: flex-start; gap: 12px; position: static; }
   .nav { flex-wrap: wrap; }
   .brand { white-space: normal; }
