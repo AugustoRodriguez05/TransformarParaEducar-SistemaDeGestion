@@ -187,36 +187,57 @@ function solapan(inicioA, finA, inicioB, finB) {
   return inicioA < finB && inicioB < finA;
 }
 
+const SELECT_ASIGNACION = `SELECT asig.*, m.nombre as materia_nombre, c.nombre as curso_nombre
+     FROM asignaciones asig
+     JOIN materias m ON m.id = asig.materia_id
+     JOIN cursos c ON c.id = asig.curso_id
+     WHERE asig.id = ?`;
+
+// Validaciones comunes al alta y a la edición de una asignación. Devuelve
+// { status, message } si algo falla, o null. Al editar, excluirId deja afuera
+// del control de superposición a la propia asignación.
+async function validarAsignacion(db, profesorId, body, excluirId = 0) {
+  const { materia_id, curso_id, dia, hora_inicio, hora_fin } = body;
+  if (!materia_id || !curso_id || !dia || !hora_inicio || !hora_fin) {
+    return { status: 400, message: 'Todos los campos son obligatorios' };
+  }
+  if (!DIAS.includes(dia)) {
+    return { status: 400, message: `El día debe ser uno de: ${DIAS.join(', ')}` };
+  }
+  const errorHorario = validarRangoHorario(hora_inicio, hora_fin);
+  if (errorHorario) return { status: 400, message: errorHorario };
+
+  if (!(await db.get('SELECT id FROM materias WHERE id = ?', materia_id))) {
+    return { status: 400, message: 'La materia seleccionada no existe' };
+  }
+  if (!(await db.get('SELECT id FROM cursos WHERE id = ?', curso_id))) {
+    return { status: 400, message: 'El curso seleccionado no existe' };
+  }
+
+  const asignacionesDelDia = await db.all(
+    'SELECT * FROM asignaciones WHERE profesor_id = ? AND dia = ? AND id != ?',
+    [profesorId, dia, excluirId]
+  );
+  const conflicto = asignacionesDelDia.some((a) => solapan(a.hora_inicio, a.hora_fin, hora_inicio, hora_fin));
+  if (conflicto) {
+    return { status: 409, message: 'El profesor ya tiene una materia asignada en ese día y horario' };
+  }
+  return null;
+}
+
 // HU2 - Asignación de materia/curso a un profesor, con validación de conflicto de horario
 router.post('/:id/asignaciones', async (req, res) => {
   const { materia_id, curso_id, dia, hora_inicio, hora_fin } = req.body;
   if (!materia_id || !curso_id || !dia || !hora_inicio || !hora_fin) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
-  if (!DIAS.includes(dia)) {
-    return res.status(400).json({ message: `El día debe ser uno de: ${DIAS.join(', ')}` });
-  }
-  const errorHorario = validarRangoHorario(hora_inicio, hora_fin);
-  if (errorHorario) return res.status(400).json({ message: errorHorario });
 
   const db = await dbPromise;
   const profesor = await db.get('SELECT * FROM profesores WHERE id = ?', req.params.id);
   if (!profesor) return res.status(404).json({ message: 'Profesor no encontrado' });
-  if (!(await db.get('SELECT id FROM materias WHERE id = ?', materia_id))) {
-    return res.status(400).json({ message: 'La materia seleccionada no existe' });
-  }
-  if (!(await db.get('SELECT id FROM cursos WHERE id = ?', curso_id))) {
-    return res.status(400).json({ message: 'El curso seleccionado no existe' });
-  }
 
-  const asignacionesDelDia = await db.all(
-    'SELECT * FROM asignaciones WHERE profesor_id = ? AND dia = ?',
-    [req.params.id, dia]
-  );
-  const conflicto = asignacionesDelDia.some((a) => solapan(a.hora_inicio, a.hora_fin, hora_inicio, hora_fin));
-  if (conflicto) {
-    return res.status(409).json({ message: 'El profesor ya tiene una materia asignada en ese día y horario' });
-  }
+  const error = await validarAsignacion(db, profesor.id, req.body);
+  if (error) return res.status(error.status).json({ message: error.message });
 
   const result = await db.run(
     `INSERT INTO asignaciones (profesor_id, materia_id, curso_id, dia, hora_inicio, hora_fin)
@@ -224,15 +245,44 @@ router.post('/:id/asignaciones', async (req, res) => {
     [req.params.id, materia_id, curso_id, dia, hora_inicio, hora_fin]
   );
 
-  const nuevaAsignacion = await db.get(
-    `SELECT asig.*, m.nombre as materia_nombre, c.nombre as curso_nombre
-     FROM asignaciones asig
-     JOIN materias m ON m.id = asig.materia_id
-     JOIN cursos c ON c.id = asig.curso_id
-     WHERE asig.id = ?`,
-    result.lastID
-  );
+  const nuevaAsignacion = await db.get(SELECT_ASIGNACION, result.lastID);
   res.status(201).json(nuevaAsignacion);
+});
+
+// La asignación tiene que pertenecer al profesor de la URL.
+async function asignacionDelProfesor(db, req, res) {
+  const asignacion = await db.get(
+    'SELECT * FROM asignaciones WHERE id = ? AND profesor_id = ?',
+    [req.params.asignacionId, req.params.id]
+  );
+  if (!asignacion) res.status(404).json({ message: 'Asignación no encontrada' });
+  return asignacion;
+}
+
+router.put('/:id/asignaciones/:asignacionId', async (req, res) => {
+  const db = await dbPromise;
+  const asignacion = await asignacionDelProfesor(db, req, res);
+  if (!asignacion) return;
+
+  const error = await validarAsignacion(db, asignacion.profesor_id, req.body, asignacion.id);
+  if (error) return res.status(error.status).json({ message: error.message });
+
+  const { materia_id, curso_id, dia, hora_inicio, hora_fin } = req.body;
+  await db.run(
+    `UPDATE asignaciones SET materia_id = ?, curso_id = ?, dia = ?, hora_inicio = ?, hora_fin = ?
+     WHERE id = ?`,
+    [materia_id, curso_id, dia, hora_inicio, hora_fin, asignacion.id]
+  );
+  res.json(await db.get(SELECT_ASIGNACION, asignacion.id));
+});
+
+router.delete('/:id/asignaciones/:asignacionId', async (req, res) => {
+  const db = await dbPromise;
+  const asignacion = await asignacionDelProfesor(db, req, res);
+  if (!asignacion) return;
+
+  await db.run('DELETE FROM asignaciones WHERE id = ?', asignacion.id);
+  res.json({ message: 'Asignación eliminada' });
 });
 
 export default router;

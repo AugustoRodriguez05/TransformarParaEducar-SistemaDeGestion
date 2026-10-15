@@ -88,6 +88,7 @@ function VistaAdministrador() {
   const [seleccionado, setSeleccionado] = useState(null);
   const [asignaciones, setAsignaciones] = useState([]);
   const [asigForm, setAsigForm] = useState(ASIGNACION_VACIA);
+  const [asigEditandoId, setAsigEditandoId] = useState(null);
   const [asigError, setAsigError] = useState('');
 
   const cargarProfesores = () => apiFetch('/api/profesores').then(setProfesores);
@@ -194,11 +195,46 @@ function VistaAdministrador() {
     setSeleccionado(profesor);
     setAsigError('');
     setAsigForm(ASIGNACION_VACIA);
+    setAsigEditandoId(null);
     const data = await apiFetch(`/api/profesores/${profesor.id}/asignaciones`);
     setAsignaciones(data);
   };
 
   const handleAsigChange = (campo) => (e) => setAsigForm({ ...asigForm, [campo]: e.target.value });
+
+  const recargarAsignaciones = async () => {
+    const data = await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`);
+    setAsignaciones(data);
+  };
+
+  const cancelarEdicionAsignacion = () => {
+    setAsigEditandoId(null);
+    setAsigForm(ASIGNACION_VACIA);
+    setAsigError('');
+  };
+
+  const editarAsignacion = (asignacion) => {
+    setAsigEditandoId(asignacion.id);
+    setAsigForm({
+      materia_id: String(asignacion.materia_id),
+      curso_id: String(asignacion.curso_id),
+      dia: asignacion.dia,
+      hora_inicio: asignacion.hora_inicio,
+      hora_fin: asignacion.hora_fin
+    });
+    setAsigError('');
+  };
+
+  const eliminarAsignacion = async (asignacion) => {
+    setAsigError('');
+    try {
+      await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones/${asignacion.id}`, { method: 'DELETE' });
+      if (asigEditandoId === asignacion.id) cancelarEdicionAsignacion();
+      await recargarAsignaciones();
+    } catch (err) {
+      setAsigError(err.message);
+    }
+  };
 
   const handleAsigSubmit = async (e) => {
     e.preventDefault();
@@ -209,13 +245,20 @@ function VistaAdministrador() {
       return;
     }
     try {
-      await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`, {
-        method: 'POST',
-        body: JSON.stringify(asigForm)
-      });
+      if (asigEditandoId) {
+        await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones/${asigEditandoId}`, {
+          method: 'PUT',
+          body: JSON.stringify(asigForm)
+        });
+        setAsigEditandoId(null);
+      } else {
+        await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`, {
+          method: 'POST',
+          body: JSON.stringify(asigForm)
+        });
+      }
       setAsigForm(ASIGNACION_VACIA);
-      const data = await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`);
-      setAsignaciones(data);
+      await recargarAsignaciones();
     } catch (err) {
       setAsigError(err.message);
     }
@@ -325,6 +368,7 @@ function VistaAdministrador() {
                     <ThIcono icono={GraduationCap}>Curso</ThIcono>
                     <ThIcono icono={Calendar}>Día</ThIcono>
                     <ThIcono icono={Clock}>Horario</ThIcono>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -334,6 +378,28 @@ function VistaAdministrador() {
                       <td><span className="badge curso">{a.curso_nombre}</span></td>
                       <td>{a.dia}</td>
                       <td>{a.hora_inicio} - {a.hora_fin}</td>
+                      <td>
+                        <div className="actions actions-derecha">
+                          <button
+                            type="button"
+                            className="btn-accion btn-editar btn-icono"
+                            aria-label="Editar"
+                            title="Editar"
+                            onClick={() => editarAsignacion(a)}
+                          >
+                            <Pencil size={16} aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-accion btn-eliminar btn-icono"
+                            aria-label="Eliminar"
+                            title="Eliminar"
+                            onClick={() => eliminarAsignacion(a)}
+                          >
+                            <Trash2 size={16} aria-hidden="true" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -366,7 +432,14 @@ function VistaAdministrador() {
             <label>Desde<input type="time" value={asigForm.hora_inicio} onChange={handleAsigChange('hora_inicio')} required /></label>
             <label>Hasta<input type="time" value={asigForm.hora_fin} onChange={handleAsigChange('hora_fin')} required /></label>
             <div className="form-actions">
-              <button type="submit"><Plus size={18} aria-hidden="true" />Asignar</button>
+              {asigEditandoId ? (
+                <>
+                  <button type="submit"><Save size={18} aria-hidden="true" />Guardar cambios</button>
+                  <button type="button" className="secondary" onClick={cancelarEdicionAsignacion}>Cancelar</button>
+                </>
+              ) : (
+                <button type="submit"><Plus size={18} aria-hidden="true" />Asignar</button>
+              )}
             </div>
           </form>
           {asigError && <p className="error">{asigError}</p>}
