@@ -46,7 +46,7 @@ export default function ServiciosAlumno({ alumnoId }) {
         {servicios.deportes.map((d) => (
           <li key={d.id}>
             <span>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</span>
-            <button className="accion accion-baja" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            <button className="btn-accion btn-baja" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         ))}
       </ul>
@@ -71,7 +71,7 @@ export default function ServiciosAlumno({ alumnoId }) {
         <ul className="servicios-lista">
           <li>
             <span>{servicios.transporte.recorrido_nombre}</span>
-            <button className="accion accion-baja" onClick={() => ejecutar('/transporte', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            <button className="btn-accion btn-baja" onClick={() => ejecutar('/transporte', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         </ul>
       ) : (
@@ -95,7 +95,7 @@ export default function ServiciosAlumno({ alumnoId }) {
         <ul className="servicios-lista">
           <li>
             <span>Inscripto al comedor</span>
-            <button className="accion accion-baja" onClick={() => ejecutar('/comedor', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            <button className="btn-accion btn-baja" onClick={() => ejecutar('/comedor', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         </ul>
       ) : (

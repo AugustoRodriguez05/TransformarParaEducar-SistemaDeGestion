@@ -94,7 +94,7 @@ export default function TurnosProfesor() {
             {franjas.map((f) => (
               <li key={f.id}>
                 <span>{formatearFecha(f.fecha)} — {f.hora_inicio} a {f.hora_fin} {f.ocupada && <span className="badge activo sin-punto">Ocupada</span>}</span>
-                <button className="accion accion-eliminar" onClick={() => ejecutar(`/api/turnos/disponibilidad/${f.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                <button className="btn-accion btn-eliminar" onClick={() => ejecutar(`/api/turnos/disponibilidad/${f.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
               </li>
             ))}
           </ul>
@@ -124,16 +124,18 @@ export default function TurnosProfesor() {
                 <td>{t.alumno_nombre}</td>
                 <td>{t.motivo || '—'}</td>
                 <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
-                <td className="actions">
-                  {t.estado === 'Pendiente' && (
-                    <button className="accion accion-confirmar" onClick={() => ejecutar(`/api/turnos/${t.id}/confirmar`, 'PATCH')}><Check size={16} aria-hidden="true" />Confirmar</button>
-                  )}
-                  {t.estado !== 'Cancelado' && (
-                    <>
-                      <button className="accion accion-ver" onClick={() => { setReprogramando(t.id); setNuevaFranja(''); }}><CalendarClock size={16} aria-hidden="true" />Reprogramar</button>
-                      <button className="accion accion-cancelar" onClick={() => ejecutar(`/api/turnos/${t.id}/cancelar`, 'PATCH')}><X size={16} aria-hidden="true" />Cancelar</button>
-                    </>
-                  )}
+                <td>
+                  <div className="actions">
+                    {t.estado === 'Pendiente' && (
+                      <button className="btn-accion btn-confirmar" onClick={() => ejecutar(`/api/turnos/${t.id}/confirmar`, 'PATCH')}><Check size={16} aria-hidden="true" />Confirmar</button>
+                    )}
+                    {t.estado !== 'Cancelado' && (
+                      <>
+                        <button className="btn-accion btn-ver" onClick={() => { setReprogramando(t.id); setNuevaFranja(''); }}><CalendarClock size={16} aria-hidden="true" />Reprogramar</button>
+                        <button className="btn-accion btn-cancelar" onClick={() => ejecutar(`/api/turnos/${t.id}/cancelar`, 'PATCH')}><X size={16} aria-hidden="true" />Cancelar</button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

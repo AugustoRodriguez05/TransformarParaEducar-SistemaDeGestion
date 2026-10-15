@@ -109,8 +109,8 @@ export default function DeportesEditor() {
             <li key={d.id}>
               <span>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</span>
               <span className="actions">
-                <button className="accion accion-editar" onClick={() => editar(d)}><Pencil size={16} aria-hidden="true" />Editar</button>
-                <button className="accion accion-eliminar" onClick={() => ejecutar(`/api/servicios/deportes/${d.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                <button className="btn-accion btn-editar" onClick={() => editar(d)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                <button className="btn-accion btn-eliminar" onClick={() => ejecutar(`/api/servicios/deportes/${d.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
               </span>
             </li>
           ))}

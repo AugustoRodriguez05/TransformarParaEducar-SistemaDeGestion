@@ -72,16 +72,16 @@ export default function CatalogoEditor({ titulo, ruta, icono }) {
                 <>
                   <input value={nombreEditado} onChange={(e) => setNombreEditado(e.target.value)} />
                   <span className="actions">
-                    <button className="accion accion-confirmar" onClick={() => guardarEdicion(item.id)}><Save size={16} aria-hidden="true" />Guardar</button>
-                    <button className="accion accion-cancelar" onClick={() => setEditandoId(null)}><X size={16} aria-hidden="true" />Cancelar</button>
+                    <button className="btn-accion btn-confirmar" onClick={() => guardarEdicion(item.id)}><Save size={16} aria-hidden="true" />Guardar</button>
+                    <button className="btn-accion btn-cancelar" onClick={() => setEditandoId(null)}><X size={16} aria-hidden="true" />Cancelar</button>
                   </span>
                 </>
               ) : (
                 <>
                   <span>{item.nombre}</span>
                   <span className="actions">
-                    <button className="accion accion-editar" onClick={() => { setEditandoId(item.id); setNombreEditado(item.nombre); setError(''); }}><Pencil size={16} aria-hidden="true" />Editar</button>
-                    <button className="accion accion-eliminar" onClick={() => ejecutar(`/api/${ruta}/${item.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                    <button className="btn-accion btn-editar" onClick={() => { setEditandoId(item.id); setNombreEditado(item.nombre); setError(''); }}><Pencil size={16} aria-hidden="true" />Editar</button>
+                    <button className="btn-accion btn-eliminar" onClick={() => ejecutar(`/api/${ruta}/${item.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
                   </span>
                 </>
               )}

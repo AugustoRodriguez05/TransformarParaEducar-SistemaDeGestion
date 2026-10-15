@@ -242,17 +242,19 @@ export default function Alumnos() {
                 <td>{a.dni}</td>
                 <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
                 <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
-                <td className="actions">
-                  <button className="accion accion-editar" onClick={() => abrirEdicion(a)}><Pencil size={16} aria-hidden="true" />Editar</button>
-                  {a.estado === 'Activo' && (
-                    <button className="accion accion-ver" onClick={() => setAlumnoServicios(a)}><IdCard size={16} aria-hidden="true" />Servicios</button>
-                  )}
-                  <button className={a.estado === 'Activo' ? 'accion accion-baja' : 'accion accion-confirmar'} onClick={() => cambiarEstado(a)}>
-                    {a.estado === 'Activo'
-                      ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
-                      : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
-                  </button>
-                  <button className="accion accion-eliminar" onClick={() => eliminar(a)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                <td>
+                  <div className="actions">
+                    <button className="btn-accion btn-editar" onClick={() => abrirEdicion(a)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                    {a.estado === 'Activo' && (
+                      <button className="btn-accion btn-ver" onClick={() => setAlumnoServicios(a)}><IdCard size={16} aria-hidden="true" />Servicios</button>
+                    )}
+                    <button className={a.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(a)}>
+                      {a.estado === 'Activo'
+                        ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                        : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
+                    </button>
+                    <button className="btn-accion btn-eliminar" onClick={() => eliminar(a)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                  </div>
                 </td>
               </tr>
             ))}

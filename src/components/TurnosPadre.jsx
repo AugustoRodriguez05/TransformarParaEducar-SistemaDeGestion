@@ -155,7 +155,7 @@ export default function TurnosPadre() {
                 <td>{t.alumno_nombre}</td>
                 <td><span className={`badge ${t.estado.toLowerCase()}`}>{t.estado}</span></td>
                 <td>
-                  {t.estado !== 'Cancelado' && <button className="accion accion-cancelar" onClick={() => cancelar(t.id)}><X size={16} aria-hidden="true" />Cancelar</button>}
+                  {t.estado !== 'Cancelado' && <button className="btn-accion btn-cancelar" onClick={() => cancelar(t.id)}><X size={16} aria-hidden="true" />Cancelar</button>}
                 </td>
               </tr>
             ))}

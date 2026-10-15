@@ -189,26 +189,35 @@ button.link {
 
 button.link:hover { background: none; color: var(--naranja-texto); }
 
-/* Acciones en filas y listas: enlaces con ícono, sin fondo */
-button.accion {
-  background: none;
-  padding: 2px 0;
-  border-radius: 0;
+/* Acciones en filas, listas y tarjetas: botones con fondo según el tipo de acción */
+button.btn-accion {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
   font-family: var(--font-body);
   font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
-  vertical-align: middle;
 }
 
-button.accion:hover { background: none; text-decoration: underline; text-underline-offset: 3px; }
+button.btn-editar { background: #e0ecff; color: #1d4ed8; }
+button.btn-editar:hover { background: #c7dbff; }
 
-button.accion-editar { color: #1d4ed8; }
-button.accion-ver { color: #475569; }
-button.accion-confirmar { color: #047857; }
-button.accion-baja,
-button.accion-eliminar,
-button.accion-cancelar { color: #b91c1c; }
+button.btn-ver { background: #f1f5f9; color: #475569; }
+button.btn-ver:hover { background: #e2e8f0; }
+
+button.btn-reactivar,
+button.btn-confirmar { background: #d1fae5; color: #047857; }
+button.btn-reactivar:hover,
+button.btn-confirmar:hover { background: #c3f5dc; }
+
+button.btn-baja,
+button.btn-cancelar { background: #fee2e2; color: #b91c1c; }
+button.btn-baja:hover,
+button.btn-cancelar:hover { background: #fed4d4; }
+
+button.btn-eliminar { background: #b91c1c; color: white; }
+button.btn-eliminar:hover { background: #991b1b; }
 
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -321,16 +330,13 @@ label {
 
 .data-table tr.row-inactivo { color: var(--muted); background: #f8fafc; }
 
-.actions { display: flex; align-items: center; }
-
-/* En las tablas, la celda de acciones sigue siendo una celda normal para que su borde quede alineado con la fila */
-.data-table td.actions { display: table-cell; white-space: nowrap; }
-
-/* Línea vertical entre una acción y la siguiente */
-.actions > button.accion + button.accion {
-  margin-left: 12px;
-  padding-left: 12px;
-  border-left: 1px solid #e2e8f0;
+/* Grupo de botones de acción: separados por 8px y, si no entran, bajan de línea.
+   En las tablas va en un div dentro de la celda, para que la celda siga alineada con la fila. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ---------- Etiquetas de estado ---------- */
@@ -487,8 +493,10 @@ label {
 
 .servicios-lista li {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -502,7 +510,7 @@ label {
 }
 
 .lista-catalogo li:nth-child(even) { background: #f8fafc; }
-.lista-catalogo .actions { margin-left: auto; flex: none; }
+.lista-catalogo .actions { margin-left: auto; }
 
 .servicios-lista small { color: var(--muted); margin-left: 12px; white-space: nowrap; }
 
@@ -554,33 +562,6 @@ label {
   word-break: break-all;
 }
 
-.padre-acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-button.btn-padre {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 10px;
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-button.btn-padre-editar { background: #e0ecff; color: #1d4ed8; }
-button.btn-padre-editar:hover { background: #c7dbff; }
-
-button.btn-padre-baja { background: #fee2e2; color: #b91c1c; }
-button.btn-padre-baja:hover { background: #fed4d4; }
-
-button.btn-padre-reactivar { background: #d1fae5; color: #047857; }
-button.btn-padre-reactivar:hover { background: #c3f5dc; }
-
-button.btn-padre-eliminar { background: #b91c1c; color: white; }
-button.btn-padre-eliminar:hover { background: #991b1b; }
-
 .padre-hijos {
   list-style: none;
   margin: 0 0 16px;
@@ -591,6 +572,7 @@ button.btn-padre-eliminar:hover { background: #991b1b; }
 
 .padre-hijos li {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 12px;

@@ -171,14 +171,14 @@ export default function Padres() {
                   <span className={`badge ${p.activo ? 'activo' : 'inactivo'}`}>{p.activo ? 'Activo' : 'Inactivo'}</span>
                 </h3>
               </div>
-              <div className="padre-acciones">
-                <button className="btn-padre btn-padre-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
-                <button className={p.activo ? 'btn-padre btn-padre-baja' : 'btn-padre btn-padre-reactivar'} onClick={() => cambiarEstado(p)}>
+              <div className="actions">
+                <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                <button className={p.activo ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(p)}>
                   {p.activo
                     ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
                     : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
                 </button>
-                <button className="btn-padre btn-padre-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                <button className="btn-accion btn-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
               </div>
             </div>
 
@@ -190,7 +190,7 @@ export default function Padres() {
                       <span className="padre-hijo-icono"><GraduationCap size={16} aria-hidden="true" /></span>
                       <span>{h.apellido}, {h.nombre} — legajo {h.legajo}</span>
                     </span>
-                    <button className="accion accion-cancelar" onClick={() => ejecutar(`/api/padres/${p.id}/alumnos/${h.id}`, 'DELETE')}><X size={16} aria-hidden="true" />Quitar</button>
+                    <button className="btn-accion btn-cancelar" onClick={() => ejecutar(`/api/padres/${p.id}/alumnos/${h.id}`, 'DELETE')}><X size={16} aria-hidden="true" />Quitar</button>
                   </li>
                 ))}
               </ul>

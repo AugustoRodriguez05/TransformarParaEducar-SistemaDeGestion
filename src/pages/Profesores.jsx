@@ -287,15 +287,17 @@ function VistaAdministrador() {
               <td>{p.dni}</td>
               <td>{p.email}</td>
               <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
-              <td className="actions">
-                <button className="accion accion-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button>
-                <button className="accion accion-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
-                <button className={p.estado === 'Activo' ? 'accion accion-baja' : 'accion accion-confirmar'} onClick={() => cambiarEstado(p)}>
-                  {p.estado === 'Activo'
-                    ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
-                    : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
-                </button>
-                <button className="accion accion-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+              <td>
+                <div className="actions">
+                  <button className="btn-accion btn-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button>
+                  <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
+                  <button className={p.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(p)}>
+                    {p.estado === 'Activo'
+                      ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                      : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
+                  </button>
+                  <button className="btn-accion btn-eliminar" onClick={() => eliminar(p)}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+                </div>
               </td>
             </tr>
           ))}
