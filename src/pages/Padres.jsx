@@ -68,8 +68,6 @@ export default function Padres() {
   };
 
   const cambiarEstado = async (padre) => {
-    if (padre.activo
-      && !window.confirm(`¿Dar de baja a ${padre.apellido}, ${padre.nombre}? No va a poder iniciar sesión hasta que se reactive.`)) return;
     await ejecutar(`/api/padres/${padre.id}/estado`, 'PATCH', { estado: padre.activo ? 'Inactivo' : 'Activo' });
   };
 

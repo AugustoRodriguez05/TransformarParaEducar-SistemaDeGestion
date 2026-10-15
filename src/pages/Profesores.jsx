@@ -162,8 +162,6 @@ function VistaAdministrador() {
 
   const cambiarEstado = async (profesor) => {
     const nuevoEstado = profesor.estado === 'Activo' ? 'Inactivo' : 'Activo';
-    if (nuevoEstado === 'Inactivo'
-      && !window.confirm(`¿Dar de baja a ${profesor.apellido}, ${profesor.nombre}? No va a poder iniciar sesión hasta que se reactive.`)) return;
     setError('');
     setMessage('');
     try {
