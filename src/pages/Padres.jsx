@@ -3,6 +3,7 @@ import {
   ArrowDown, GraduationCap, Link, Pencil, RotateCcw, Save, Trash2, User, UserPlus, UsersRound, X
 } from 'lucide-react';
 import { apiFetch } from '../api';
+import Modal from '../components/Modal';
 import TituloSeccion from '../components/TituloSeccion';
 import {
   limpiar, soloErrores, validarEmail, validarNombrePersona, validarPasswordNueva
@@ -114,44 +115,70 @@ export default function Padres() {
     }
   };
 
+  // Campos y botones del formulario. Los usan el alta (arriba de la lista)
+  // y la edición (en una ventana emergente).
+  const camposFormulario = (
+    <div className="form-grid">
+      <label>
+        Nombre
+        <input value={formData.nombre} onChange={handleChange('nombre')} required />
+        {errores.nombre && <small className="error">{errores.nombre}</small>}
+      </label>
+      <label>
+        Apellido
+        <input value={formData.apellido} onChange={handleChange('apellido')} required />
+        {errores.apellido && <small className="error">{errores.apellido}</small>}
+      </label>
+      <label>
+        Email
+        <input type="email" value={formData.email} onChange={handleChange('email')} required />
+        {errores.email && <small className="error">{errores.email}</small>}
+      </label>
+      {!editingId && (
+        <label>
+          Contraseña de acceso
+          <input type="password" value={formData.password} onChange={handleChange('password')} required />
+          {errores.password && <small className="error">{errores.password}</small>}
+        </label>
+      )}
+    </div>
+  );
+
+  const accionesFormulario = (
+    <div className="form-actions">
+      <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar'}</button>
+      <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
+    </div>
+  );
+
   return (
     <div>
+      {formVisible && editingId && (
+        <Modal
+          icono={Pencil}
+          titulo="Editar padre/tutor"
+          onClose={() => setFormVisible(false)}
+          anchoMaximo={720}
+        >
+          <form onSubmit={crearPadre}>
+            {camposFormulario}
+            {/* En la pantalla el error se muestra debajo del formulario; acá, dentro de la ventana */}
+            {error && <p className="error">{error}</p>}
+            {accionesFormulario}
+          </form>
+        </Modal>
+      )}
+
       <div className="page-header">
         <TituloSeccion principal icono={UsersRound}>Padres y tutores</TituloSeccion>
         <button onClick={abrirNuevo}><UserPlus size={18} aria-hidden="true" />Nuevo padre/tutor</button>
       </div>
 
-      {formVisible && (
+      {formVisible && !editingId && (
         <form className="card form-card" onSubmit={crearPadre}>
-          <TituloSeccion icono={editingId ? Pencil : UserPlus}>{editingId ? 'Editar padre/tutor' : 'Alta de padre/tutor'}</TituloSeccion>
-          <div className="form-grid">
-            <label>
-              Nombre
-              <input value={formData.nombre} onChange={handleChange('nombre')} required />
-              {errores.nombre && <small className="error">{errores.nombre}</small>}
-            </label>
-            <label>
-              Apellido
-              <input value={formData.apellido} onChange={handleChange('apellido')} required />
-              {errores.apellido && <small className="error">{errores.apellido}</small>}
-            </label>
-            <label>
-              Email
-              <input type="email" value={formData.email} onChange={handleChange('email')} required />
-              {errores.email && <small className="error">{errores.email}</small>}
-            </label>
-            {!editingId && (
-              <label>
-                Contraseña de acceso
-                <input type="password" value={formData.password} onChange={handleChange('password')} required />
-                {errores.password && <small className="error">{errores.password}</small>}
-              </label>
-            )}
-          </div>
-          <div className="form-actions">
-            <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar'}</button>
-            <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
-          </div>
+          <TituloSeccion icono={UserPlus}>Alta de padre/tutor</TituloSeccion>
+          {camposFormulario}
+          {accionesFormulario}
         </form>
       )}
 

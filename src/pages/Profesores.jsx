@@ -264,6 +264,47 @@ function VistaAdministrador() {
     }
   };
 
+  // Campos, error y botones del formulario. Los usan el alta (arriba de la tabla)
+  // y la edición (en una ventana emergente).
+  const contenidoFormulario = (
+    <>
+      <div className="form-grid">
+        <label>
+          Nombre
+          <input value={formData.nombre} onChange={handleChange('nombre')} required />
+          {errores.nombre && <small className="error">{errores.nombre}</small>}
+        </label>
+        <label>
+          Apellido
+          <input value={formData.apellido} onChange={handleChange('apellido')} required />
+          {errores.apellido && <small className="error">{errores.apellido}</small>}
+        </label>
+        <label>
+          DNI
+          <input inputMode="numeric" value={formData.dni} onChange={handleChange('dni')} required />
+          {errores.dni && <small className="error">{errores.dni}</small>}
+        </label>
+        <label>
+          Email
+          <input type="email" value={formData.email} onChange={handleChange('email')} required />
+          {errores.email && <small className="error">{errores.email}</small>}
+        </label>
+        {!editingId && (
+          <label>
+            Contraseña de acceso
+            <input type="password" value={formData.password} onChange={handleChange('password')} required />
+            {errores.password && <small className="error">{errores.password}</small>}
+          </label>
+        )}
+      </div>
+      {error && <p className="error">{error}</p>}
+      <div className="form-actions">
+        <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar profesor'}</button>
+        <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
+      </div>
+    </>
+  );
+
   return (
     <div>
       <div className="page-header">
@@ -273,43 +314,10 @@ function VistaAdministrador() {
 
       {error && !formVisible && <p className="error">{error}</p>}
 
-      {formVisible && (
+      {formVisible && !editingId && (
         <form className="card form-card" onSubmit={handleSubmit}>
-          <TituloSeccion icono={editingId ? Pencil : UserPlus}>{editingId ? 'Editar profesor' : 'Alta de profesor'}</TituloSeccion>
-          <div className="form-grid">
-            <label>
-              Nombre
-              <input value={formData.nombre} onChange={handleChange('nombre')} required />
-              {errores.nombre && <small className="error">{errores.nombre}</small>}
-            </label>
-            <label>
-              Apellido
-              <input value={formData.apellido} onChange={handleChange('apellido')} required />
-              {errores.apellido && <small className="error">{errores.apellido}</small>}
-            </label>
-            <label>
-              DNI
-              <input inputMode="numeric" value={formData.dni} onChange={handleChange('dni')} required />
-              {errores.dni && <small className="error">{errores.dni}</small>}
-            </label>
-            <label>
-              Email
-              <input type="email" value={formData.email} onChange={handleChange('email')} required />
-              {errores.email && <small className="error">{errores.email}</small>}
-            </label>
-            {!editingId && (
-              <label>
-                Contraseña de acceso
-                <input type="password" value={formData.password} onChange={handleChange('password')} required />
-                {errores.password && <small className="error">{errores.password}</small>}
-              </label>
-            )}
-          </div>
-          {error && <p className="error">{error}</p>}
-          <div className="form-actions">
-            <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar profesor'}</button>
-            <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
-          </div>
+          <TituloSeccion icono={UserPlus}>Alta de profesor</TituloSeccion>
+          {contenidoFormulario}
         </form>
       )}
 
@@ -444,6 +452,19 @@ function VistaAdministrador() {
             </div>
           </form>
           {asigError && <p className="error">{asigError}</p>}
+        </Modal>
+      )}
+
+      {formVisible && editingId && (
+        <Modal
+          icono={Pencil}
+          titulo="Editar profesor"
+          onClose={() => setFormVisible(false)}
+          anchoMaximo={720}
+        >
+          <form onSubmit={handleSubmit}>
+            {contenidoFormulario}
+          </form>
         </Modal>
       )}
     </div>
