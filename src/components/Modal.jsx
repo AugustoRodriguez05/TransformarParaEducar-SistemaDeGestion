@@ -5,7 +5,8 @@ import TituloSeccion from './TituloSeccion';
 const ENFOCABLES = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 // Ventana emergente. Se cierra con el botón, con Esc o con un clic en el fondo.
-export default function Modal({ icono, titulo, onClose, children }) {
+// anchoMaximo: ancho máximo de esta ventana (número en px o valor CSS); por defecto 640px.
+export default function Modal({ icono, titulo, onClose, anchoMaximo = 640, children }) {
   const tituloId = useId();
   const ventanaRef = useRef(null);
 
@@ -59,6 +60,7 @@ export default function Modal({ icono, titulo, onClose, children }) {
     <div className="modal-fondo" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div
         className="modal-ventana"
+        style={{ maxWidth: anchoMaximo }}
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}

@@ -356,6 +356,7 @@ function VistaAdministrador() {
           icono={BookOpen}
           titulo={<>Materias asignadas a {seleccionado.nombre} {seleccionado.apellido}</>}
           onClose={() => setSeleccionado(null)}
+          anchoMaximo={740}
         >
 
           {asignaciones.length === 0 && <p>Sin materias asignadas todavía.</p>}
