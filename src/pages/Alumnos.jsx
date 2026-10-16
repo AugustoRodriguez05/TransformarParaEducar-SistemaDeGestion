@@ -173,6 +173,51 @@ export default function Alumnos() {
     if (await eliminar(alumnoFicha)) setAlumnoFicha(null);
   };
 
+  // Campos, error y botones del formulario. Los usan el alta (arriba de la tabla)
+  // y la edición (en una ventana emergente).
+  const contenidoFormulario = (
+    <>
+      <div className="form-grid">
+        <label>
+          Nombre
+          <input value={formData.nombre} onChange={handleChange('nombre')} required />
+          {errores.nombre && <small className="error">{errores.nombre}</small>}
+        </label>
+        <label>
+          Apellido
+          <input value={formData.apellido} onChange={handleChange('apellido')} required />
+          {errores.apellido && <small className="error">{errores.apellido}</small>}
+        </label>
+        <label>
+          DNI
+          <input inputMode="numeric" value={formData.dni} onChange={handleChange('dni')} required />
+          {errores.dni && <small className="error">{errores.dni}</small>}
+        </label>
+        <label>
+          Fecha de nacimiento
+          <input type="date" value={formData.fecha_nacimiento} onChange={handleChange('fecha_nacimiento')} required />
+          {errores.fecha_nacimiento && <small className="error">{errores.fecha_nacimiento}</small>}
+        </label>
+        <label>
+          Curso
+          <select value={formData.curso_id} onChange={handleChange('curso_id')}>
+            <option value="">Sin asignar</option>
+            {cursos.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      {error && <p className="error">{error}</p>}
+
+      <div className="form-actions">
+        <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar alumno'}</button>
+        <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
+      </div>
+    </>
+  );
+
   return (
     <div>
       <div className="page-header">
@@ -204,47 +249,10 @@ export default function Alumnos() {
 
       {error && !formVisible && <p className="error">{error}</p>}
 
-      {formVisible && (
+      {formVisible && !editingId && (
         <form className="card form-card" onSubmit={handleSubmit}>
-          <TituloSeccion icono={editingId ? Pencil : UserPlus}>{editingId ? 'Editar legajo' : 'Alta de alumno'}</TituloSeccion>
-          <div className="form-grid">
-            <label>
-              Nombre
-              <input value={formData.nombre} onChange={handleChange('nombre')} required />
-              {errores.nombre && <small className="error">{errores.nombre}</small>}
-            </label>
-            <label>
-              Apellido
-              <input value={formData.apellido} onChange={handleChange('apellido')} required />
-              {errores.apellido && <small className="error">{errores.apellido}</small>}
-            </label>
-            <label>
-              DNI
-              <input inputMode="numeric" value={formData.dni} onChange={handleChange('dni')} required />
-              {errores.dni && <small className="error">{errores.dni}</small>}
-            </label>
-            <label>
-              Fecha de nacimiento
-              <input type="date" value={formData.fecha_nacimiento} onChange={handleChange('fecha_nacimiento')} required />
-              {errores.fecha_nacimiento && <small className="error">{errores.fecha_nacimiento}</small>}
-            </label>
-            <label>
-              Curso
-              <select value={formData.curso_id} onChange={handleChange('curso_id')}>
-                <option value="">Sin asignar</option>
-                {cursos.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nombre}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {error && <p className="error">{error}</p>}
-
-          <div className="form-actions">
-            <button type="submit"><Save size={18} aria-hidden="true" />{editingId ? 'Guardar cambios' : 'Guardar alumno'}</button>
-            <button type="button" className="secondary" onClick={() => setFormVisible(false)}>Cancelar</button>
-          </div>
+          <TituloSeccion icono={UserPlus}>Alta de alumno</TituloSeccion>
+          {contenidoFormulario}
         </form>
       )}
 
@@ -336,6 +344,19 @@ export default function Alumnos() {
         >
           {error && <p className="error">{error}</p>}
           <FichaAlumno key={alumnoFicha.id} alumno={alumnoFicha} />
+        </Modal>
+      )}
+
+      {formVisible && editingId && (
+        <Modal
+          icono={Pencil}
+          titulo="Editar legajo"
+          onClose={() => setFormVisible(false)}
+          anchoMaximo={720}
+        >
+          <form onSubmit={handleSubmit}>
+            {contenidoFormulario}
+          </form>
         </Modal>
       )}
     </div>
