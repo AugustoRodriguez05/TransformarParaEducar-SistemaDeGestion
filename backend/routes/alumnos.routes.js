@@ -90,6 +90,22 @@ router.get('/:id', async (req, res) => {
   res.json(alumno);
 });
 
+// Padres o tutores vinculados a un alumno (para la ficha del alumno)
+router.get('/:id/padres', async (req, res) => {
+  const db = await dbPromise;
+  if (!(await db.get('SELECT id FROM alumnos WHERE id = ?', req.params.id))) {
+    return res.status(404).json({ message: 'Alumno no encontrado' });
+  }
+  const padres = await db.all(
+    `SELECT u.id, u.nombre, u.apellido, u.email FROM padre_alumno pa
+     JOIN usuarios u ON u.id = pa.padre_usuario_id
+     WHERE pa.alumno_id = ?
+     ORDER BY u.apellido, u.nombre`,
+    req.params.id
+  );
+  res.json(padres);
+});
+
 // HU1 - Alta de legajo de alumnos
 router.post('/', async (req, res) => {
   const faltantes = validarCamposObligatorios(req.body);

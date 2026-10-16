@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDown, BadgeCheck, ClipboardList, FileText, GraduationCap, Hash, IdCard,
+  ArrowDown, BadgeCheck, ClipboardList, Eye, FileText, GraduationCap, Hash, IdCard,
   Pencil, RotateCcw, Save, Search, Trash2, User, UserPlus, Users
 } from 'lucide-react';
 import { apiFetch } from '../api';
+import FichaAlumno from '../components/FichaAlumno';
 import Modal from '../components/Modal';
 import ServiciosAlumno from '../components/ServiciosAlumno';
 import ThIcono from '../components/ThIcono';
@@ -26,6 +27,7 @@ export default function Alumnos() {
   const [message, setMessage] = useState('');
   const [buscado, setBuscado] = useState(false);
   const [alumnoServicios, setAlumnoServicios] = useState(null);
+  const [alumnoFicha, setAlumnoFicha] = useState(null);
 
   const cargarAlumnos = async (q = '') => {
     const params = q ? `?q=${encodeURIComponent(q)}` : '';
@@ -239,12 +241,23 @@ export default function Alumnos() {
               {alumnos.map((a) => (
                 <tr key={a.id} className={a.estado === 'Inactivo' ? 'row-inactivo' : ''}>
                   <td>{a.legajo}</td>
-                  <td>{a.apellido}, {a.nombre}</td>
+                  <td>
+                    <button type="button" className="btn-texto" onClick={() => setAlumnoFicha(a)}>{a.apellido}, {a.nombre}</button>
+                  </td>
                   <td>{a.dni}</td>
                   <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
                   <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
                   <td>
                     <div className="actions">
+                      <button
+                        type="button"
+                        className="btn-accion btn-ver btn-icono"
+                        aria-label="Ver ficha"
+                        title="Ver ficha"
+                        onClick={() => setAlumnoFicha(a)}
+                      >
+                        <Eye size={16} aria-hidden="true" />
+                      </button>
                       <button className="btn-accion btn-editar" onClick={() => abrirEdicion(a)}><Pencil size={16} aria-hidden="true" />Editar</button>
                       {a.estado === 'Activo' && (
                         <button className="btn-accion btn-ver" onClick={() => setAlumnoServicios(a)}><IdCard size={16} aria-hidden="true" />Servicios</button>
@@ -271,6 +284,17 @@ export default function Alumnos() {
           onClose={() => setAlumnoServicios(null)}
         >
           <ServiciosAlumno key={alumnoServicios.id} alumnoId={alumnoServicios.id} />
+        </Modal>
+      )}
+
+      {alumnoFicha && (
+        <Modal
+          icono={User}
+          titulo={<>Ficha de {alumnoFicha.apellido}, {alumnoFicha.nombre}</>}
+          onClose={() => setAlumnoFicha(null)}
+          anchoMaximo={640}
+        >
+          <FichaAlumno key={alumnoFicha.id} alumno={alumnoFicha} />
         </Modal>
       )}
     </div>
