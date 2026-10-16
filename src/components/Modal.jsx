@@ -6,7 +6,8 @@ const ENFOCABLES = 'a[href], button:not([disabled]), input:not([disabled]), sele
 
 // Ventana emergente. Se cierra con el botón, con Esc o con un clic en el fondo.
 // anchoMaximo: ancho máximo de esta ventana (número en px o valor CSS); por defecto 640px.
-export default function Modal({ icono, titulo, onClose, anchoMaximo = 640, children }) {
+// subtitulo y acciones (opcionales): contenido debajo del título y botones a su derecha.
+export default function Modal({ icono, titulo, onClose, anchoMaximo = 640, subtitulo, acciones, children }) {
   const tituloId = useId();
   const ventanaRef = useRef(null);
 
@@ -67,10 +68,14 @@ export default function Modal({ icono, titulo, onClose, anchoMaximo = 640, child
         tabIndex={-1}
         ref={ventanaRef}
       >
-        <div className="modal-encabezado">
-          <div id={tituloId}>
-            <TituloSeccion icono={icono}>{titulo}</TituloSeccion>
+        <div className={acciones ? 'modal-encabezado con-acciones' : 'modal-encabezado'}>
+          <div className="modal-titulo">
+            <div id={tituloId}>
+              <TituloSeccion icono={icono}>{titulo}</TituloSeccion>
+            </div>
+            {subtitulo && <div className="modal-subtitulo">{subtitulo}</div>}
           </div>
+          {acciones && <div className="modal-acciones actions">{acciones}</div>}
           <button type="button" className="modal-cerrar" aria-label="Cerrar" onClick={onClose}>
             <X size={20} aria-hidden="true" />
           </button>

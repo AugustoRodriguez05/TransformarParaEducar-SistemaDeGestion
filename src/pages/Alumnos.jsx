@@ -126,13 +126,15 @@ export default function Alumnos() {
         body: JSON.stringify({ estado: nuevoEstado })
       });
       await cargarAlumnos(query);
+      return true;
     } catch (err) {
       setError(err.message);
+      return false;
     }
   };
 
   const eliminar = async (alumno) => {
-    if (!window.confirm(`¿Eliminar a ${alumno.apellido}, ${alumno.nombre}? Esta acción no se puede deshacer.`)) return;
+    if (!window.confirm(`¿Eliminar a ${alumno.apellido}, ${alumno.nombre}? Esta acción no se puede deshacer.`)) return false;
     setError('');
     setMessage('');
     try {
@@ -140,9 +142,35 @@ export default function Alumnos() {
       if (alumnoServicios?.id === alumno.id) setAlumnoServicios(null);
       setMessage('Alumno eliminado.');
       await cargarAlumnos(query);
+      return true;
     } catch (err) {
       setError(err.message);
+      return false;
     }
+  };
+
+  // Ficha del alumno: sus acciones reutilizan las mismas funciones que la tabla.
+  const abrirFicha = (alumno) => {
+    setError('');
+    setAlumnoFicha(alumno);
+  };
+
+  const editarDesdeFicha = () => {
+    const alumno = alumnoFicha;
+    setAlumnoFicha(null);
+    abrirEdicion(alumno);
+  };
+
+  const cambiarEstadoDesdeFicha = async () => {
+    const alumno = alumnoFicha;
+    setError('');
+    if (await cambiarEstado(alumno)) {
+      setAlumnoFicha({ ...alumno, estado: alumno.estado === 'Activo' ? 'Inactivo' : 'Activo' });
+    }
+  };
+
+  const eliminarDesdeFicha = async () => {
+    if (await eliminar(alumnoFicha)) setAlumnoFicha(null);
   };
 
   return (
@@ -242,7 +270,7 @@ export default function Alumnos() {
                 <tr key={a.id} className={a.estado === 'Inactivo' ? 'row-inactivo' : ''}>
                   <td>{a.legajo}</td>
                   <td>
-                    <button type="button" className="btn-texto" onClick={() => setAlumnoFicha(a)}>{a.apellido}, {a.nombre}</button>
+                    <button type="button" className="btn-texto" onClick={() => abrirFicha(a)}>{a.apellido}, {a.nombre}</button>
                   </td>
                   <td>{a.dni}</td>
                   <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
@@ -254,7 +282,7 @@ export default function Alumnos() {
                         className="btn-accion btn-ver btn-icono"
                         aria-label="Ver ficha"
                         title="Ver ficha"
-                        onClick={() => setAlumnoFicha(a)}
+                        onClick={() => abrirFicha(a)}
                       >
                         <Eye size={16} aria-hidden="true" />
                       </button>
@@ -292,8 +320,21 @@ export default function Alumnos() {
           icono={User}
           titulo={<>Ficha de {alumnoFicha.apellido}, {alumnoFicha.nombre}</>}
           onClose={() => setAlumnoFicha(null)}
-          anchoMaximo={640}
+          anchoMaximo={820}
+          subtitulo={<span className={`badge ${alumnoFicha.estado.toLowerCase()}`}>{alumnoFicha.estado}</span>}
+          acciones={(
+            <>
+              <button className="btn-accion btn-editar" onClick={editarDesdeFicha}><Pencil size={16} aria-hidden="true" />Editar</button>
+              <button className={alumnoFicha.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={cambiarEstadoDesdeFicha}>
+                {alumnoFicha.estado === 'Activo'
+                  ? <><ArrowDown size={16} aria-hidden="true" />Dar de baja</>
+                  : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
+              </button>
+              <button className="btn-accion btn-eliminar" onClick={eliminarDesdeFicha}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+            </>
+          )}
         >
+          {error && <p className="error">{error}</p>}
           <FichaAlumno key={alumnoFicha.id} alumno={alumnoFicha} />
         </Modal>
       )}

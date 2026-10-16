@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import {
+  BookUser, Bus, Cake, CalendarDays, GraduationCap, IdCard, Settings, User, Users, Utensils, Volleyball
+} from 'lucide-react';
 import { apiFetch } from '../api';
 import { formatearFecha } from '../fecha';
 
@@ -11,16 +14,18 @@ function calcularEdad(fechaNacimiento) {
   return edad;
 }
 
-function Dato({ titulo, children }) {
+// Un dato de la ficha: ícono a la izquierda, etiqueta arriba y valor abajo.
+function Dato({ icono: Icono, titulo, children }) {
   return (
     <div className="ficha-dato">
-      <dt>{titulo}</dt>
+      <dt><Icono size={20} aria-hidden="true" />{titulo}</dt>
       <dd>{children}</dd>
     </div>
   );
 }
 
 // Ficha completa de un alumno: datos del legajo, padres o tutores vinculados y servicios.
+// El estado y las acciones se muestran en el encabezado de la ventana.
 export default function FichaAlumno({ alumno }) {
   const [padres, setPadres] = useState(null);
   const [servicios, setServicios] = useState(null);
@@ -46,29 +51,29 @@ export default function FichaAlumno({ alumno }) {
   return (
     <div className="ficha">
       <dl className="ficha-datos">
-        <Dato titulo="Legajo">{alumno.legajo}</Dato>
-        <Dato titulo="Apellido y nombre">{alumno.apellido}, {alumno.nombre}</Dato>
-        <Dato titulo="DNI">{alumno.dni}</Dato>
-        <Dato titulo="Fecha de nacimiento">{formatearFecha(alumno.fecha_nacimiento)}</Dato>
-        <Dato titulo="Edad">{edad} {edad === 1 ? 'año' : 'años'}</Dato>
-        <Dato titulo="Curso">
+        <Dato icono={BookUser} titulo="Legajo">{alumno.legajo}</Dato>
+        <Dato icono={User} titulo="Apellido y nombre">{alumno.apellido}, {alumno.nombre}</Dato>
+        <Dato icono={IdCard} titulo="DNI">{alumno.dni}</Dato>
+        <Dato icono={Cake} titulo="Edad">{edad} {edad === 1 ? 'año' : 'años'}</Dato>
+        <Dato icono={CalendarDays} titulo="Fecha de nacimiento">{formatearFecha(alumno.fecha_nacimiento)}</Dato>
+        <Dato icono={GraduationCap} titulo="Curso">
           {alumno.curso_nombre ? <span className="badge curso">{alumno.curso_nombre}</span> : '—'}
-        </Dato>
-        <Dato titulo="Estado">
-          <span className={`badge ${alumno.estado.toLowerCase()}`}>{alumno.estado}</span>
         </Dato>
       </dl>
 
       {error && <p className="error">{error}</p>}
 
       <section className="ficha-seccion">
-        <h4>Padres o tutores vinculados</h4>
+        <h4 className="ficha-titulo"><Users size={20} aria-hidden="true" />Padres o tutores vinculados</h4>
         {padres && (padres.length === 0 ? <p>Sin padres vinculados.</p> : (
-          <ul className="ficha-lista">
+          <ul className="ficha-padres">
             {padres.map((p) => (
-              <li key={p.id}>
-                <strong>{p.apellido}, {p.nombre}</strong>{' '}
-                <span className="ficha-email">{p.email}</span>
+              <li key={p.id} className="ficha-padre">
+                <User size={20} aria-hidden="true" />
+                <span>
+                  <strong>{p.apellido}, {p.nombre}</strong>
+                  <span className="ficha-email">{p.email}</span>
+                </span>
               </li>
             ))}
           </ul>
@@ -76,10 +81,10 @@ export default function FichaAlumno({ alumno }) {
       </section>
 
       <section className="ficha-seccion">
-        <h4>Servicios</h4>
+        <h4 className="ficha-titulo"><Settings size={20} aria-hidden="true" />Servicios</h4>
         {servicios && (
-          <dl className="ficha-datos">
-            <Dato titulo="Deportes">
+          <dl className="ficha-servicios">
+            <Dato icono={Volleyball} titulo="Deportes">
               {servicios.deportes.length === 0 ? 'Sin inscripción.' : (
                 <ul className="ficha-lista">
                   {servicios.deportes.map((d) => (
@@ -88,10 +93,10 @@ export default function FichaAlumno({ alumno }) {
                 </ul>
               )}
             </Dato>
-            <Dato titulo="Transporte">
+            <Dato icono={Bus} titulo="Transporte">
               {servicios.transporte ? servicios.transporte.recorrido_nombre : 'Sin inscripción.'}
             </Dato>
-            <Dato titulo="Comedor">{servicios.comedor ? 'Sí' : 'No'}</Dato>
+            <Dato icono={Utensils} titulo="Comedor">{servicios.comedor ? 'Sí' : 'No'}</Dato>
           </dl>
         )}
       </section>
