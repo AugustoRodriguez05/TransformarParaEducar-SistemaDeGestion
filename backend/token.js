@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
 
-// En desarrollo se usa una clave por defecto; en producción hay que definir JWT_SECRET en el .env.
-const SECRETO = process.env.JWT_SECRET || 'clave-de-desarrollo-cambiar-en-produccion';
+if (!process.env.JWT_SECRET) {
+  throw new Error('La variable de entorno JWT_SECRET no está definida. Definila en el archivo .env.');
+}
+const SECRETO = process.env.JWT_SECRET;
 const DURACION = process.env.JWT_DURACION || '8h';
 
 export function crearToken(usuario) {
