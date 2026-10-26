@@ -1,34 +1,91 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import pg from 'pg';
 import { DIAS } from './constantes.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { Pool } = pg;
 
-const dbPromise = open({
-  filename: process.env.DB_FILE ? path.resolve(process.env.DB_FILE) : path.join(__dirname, 'gestion.sqlite'),
-  driver: sqlite3.Database
+// Conexión via DATABASE_URL (formato: postgres://user:pass@host:5432/dbname)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false }
 });
+
+// ---------- Compatibilidad con la API de sqlite ----------
+// Las rutas usan db.get / db.all / db.run con parámetros posicionales (?).
+// Este wrapper convierte los ? en $1, $2, $3... y adapta el resultado.
+
+function convertirPlaceholders(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+}
+
+function normalizar(params) {
+  if (params === undefined || params === null) return [];
+  return Array.isArray(params) ? params : [params];
+}
+
+// Normaliza booleans de PostgreSQL (true/false) a enteros (1/0) para mantener
+// compatibilidad con el código del frontend que compara activo === 1, leida === 0, etc.
+function normalizarFila(fila) {
+  if (!fila) return fila;
+  const out = {};
+  for (const [k, v] of Object.entries(fila)) {
+    if (v === true) out[k] = 1;
+    else if (v === false) out[k] = 0;
+    else out[k] = v;
+  }
+  return out;
+}
+
+const db = {
+  /** Devuelve la primera fila o undefined */
+  async get(sql, params) {
+    const res = await pool.query(convertirPlaceholders(sql), normalizar(params));
+    return res.rows[0] ? normalizarFila(res.rows[0]) : undefined;
+  },
+
+  /** Devuelve todas las filas */
+  async all(sql, params) {
+    const res = await pool.query(convertirPlaceholders(sql), normalizar(params));
+    return res.rows.map(normalizarFila);
+  },
+
+  /**
+   * Ejecuta INSERT/UPDATE/DELETE.
+   * Para INSERT devuelve { lastID } usando RETURNING id.
+   * Para UPDATE/DELETE devuelve { changes }.
+   */
+  async run(sql, params) {
+    const isInsert = /^\s*INSERT/i.test(sql);
+    let finalSql = convertirPlaceholders(sql);
+    if (isInsert && !/RETURNING/i.test(sql)) {
+      finalSql += ' RETURNING id';
+    }
+    const res = await pool.query(finalSql, normalizar(params));
+    return {
+      lastID: res.rows[0]?.id ?? null,
+      changes: res.rowCount
+    };
+  },
+
+  /** Ejecuta SQL multilínea (DDL, múltiples statements) */
+  async exec(sql) {
+    await pool.query(sql);
+  },
+
+  /** Acceso al pool crudo por si se necesita una transacción */
+  get pool() { return pool; }
+};
+
+export default db;
+
+// ---------- Inicialización del esquema ----------
 
 const SQL_DIAS = DIAS.map((d) => `'${d}'`).join(',');
 
-// Agrega una columna solo si todavía no existe (las bases que ya tienen datos no la tienen).
-async function agregarColumna(db, tabla, columna, definicion) {
-  const columnas = await db.all(`PRAGMA table_info(${tabla})`);
-  if (!columnas.some((c) => c.name === columna)) {
-    await db.exec(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion}`);
-  }
-}
-
 export async function initDb() {
-  const db = await dbPromise;
-  await db.exec('PRAGMA foreign_keys = ON;');
-
   await db.exec(`
     CREATE TABLE IF NOT EXISTS usuarios (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre TEXT NOT NULL,
       apellido TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
@@ -38,17 +95,18 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS cursos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nombre TEXT UNIQUE NOT NULL
+      id SERIAL PRIMARY KEY,
+      nombre TEXT UNIQUE NOT NULL,
+      nivel TEXT
     );
 
     CREATE TABLE IF NOT EXISTS materias (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre TEXT UNIQUE NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS profesores (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       usuario_id INTEGER UNIQUE REFERENCES usuarios(id),
       nombre TEXT NOT NULL,
       apellido TEXT NOT NULL,
@@ -58,7 +116,7 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS alumnos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       legajo TEXT UNIQUE NOT NULL,
       nombre TEXT NOT NULL,
       apellido TEXT NOT NULL,
@@ -70,7 +128,7 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS asignaciones (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       profesor_id INTEGER NOT NULL REFERENCES profesores(id),
       materia_id INTEGER NOT NULL REFERENCES materias(id),
       curso_id INTEGER NOT NULL REFERENCES cursos(id),
@@ -80,48 +138,55 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS padre_alumno (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
       UNIQUE (padre_usuario_id, alumno_id)
     );
 
     CREATE TABLE IF NOT EXISTS deportes (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre TEXT UNIQUE NOT NULL,
       dia TEXT NOT NULL CHECK (dia IN (${SQL_DIAS})),
       hora_inicio TEXT NOT NULL,
-      hora_fin TEXT NOT NULL
+      hora_fin TEXT NOT NULL,
+      profesor_id INTEGER REFERENCES profesores(id)
     );
 
     CREATE TABLE IF NOT EXISTS inscripciones_deportivas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
       deporte_id INTEGER NOT NULL REFERENCES deportes(id),
       estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja')),
+      fecha_alta TEXT,
+      fecha_baja TEXT,
       UNIQUE (alumno_id, deporte_id)
     );
 
     CREATE TABLE IF NOT EXISTS recorridos_transporte (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       nombre TEXT UNIQUE NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS inscripciones_transporte (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
       recorrido_id INTEGER NOT NULL REFERENCES recorridos_transporte(id),
-      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja'))
+      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja')),
+      fecha_alta TEXT,
+      fecha_baja TEXT
     );
 
     CREATE TABLE IF NOT EXISTS inscripciones_comedor (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
-      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja'))
+      estado TEXT NOT NULL DEFAULT 'Activa' CHECK (estado IN ('Activa', 'Baja')),
+      fecha_alta TEXT,
+      fecha_baja TEXT
     );
 
     CREATE TABLE IF NOT EXISTS disponibilidad_profesor (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       profesor_id INTEGER NOT NULL REFERENCES profesores(id),
       fecha TEXT NOT NULL,
       hora_inicio TEXT NOT NULL,
@@ -129,7 +194,7 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS turnos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       disponibilidad_id INTEGER NOT NULL REFERENCES disponibilidad_profesor(id),
       padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
@@ -139,7 +204,7 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS notificaciones (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       mensaje TEXT NOT NULL,
       leida INTEGER NOT NULL DEFAULT 0,
@@ -151,97 +216,72 @@ export async function initDb() {
       valor TEXT NOT NULL
     );
 
-    CREATE INDEX IF NOT EXISTS idx_alumnos_dni ON alumnos(dni);
-    CREATE INDEX IF NOT EXISTS idx_alumnos_legajo ON alumnos(legajo);
-    CREATE INDEX IF NOT EXISTS idx_alumnos_apellido ON alumnos(apellido);
-  `);
-
-  await db.run(
-    "INSERT OR IGNORE INTO configuracion (clave, valor) VALUES ('ciclo_lectivo', ?)",
-    String(new Date().getFullYear())
-  );
-
-  // Migración: antes este campo era un 0/1; ahora guarda el año del ciclo en que se inscribió.
-  const { valor } = await db.get("SELECT valor FROM configuracion WHERE clave = 'ciclo_lectivo'");
-  await db.run('UPDATE alumnos SET inscripto_ciclo_lectivo = ? WHERE inscripto_ciclo_lectivo = 1', Number(valor));
-  // ---------- Parte 3: cuotas, facturas y pagos ----------
-
-  // Columnas nuevas en tablas existentes
-  await agregarColumna(db, 'cursos', 'nivel', 'TEXT');
-  await agregarColumna(db, 'deportes', 'profesor_id', 'INTEGER REFERENCES profesores(id)');
-  for (const tabla of ['inscripciones_deportivas', 'inscripciones_transporte', 'inscripciones_comedor']) {
-    await agregarColumna(db, tabla, 'fecha_alta', 'TEXT');
-    await agregarColumna(db, tabla, 'fecha_baja', 'TEXT');
-  }
-
-  // Tablas nuevas
-  await db.exec(`
     CREATE TABLE IF NOT EXISTS tarifas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       tipo TEXT NOT NULL CHECK (tipo IN ('cuota', 'deporte', 'transporte', 'comedor')),
       referencia_id INTEGER,
-      importe REAL NOT NULL CHECK (importe >= 0),
+      importe NUMERIC(12,2) NOT NULL CHECK (importe >= 0),
       vigente_desde TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS cuotas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       alumno_id INTEGER NOT NULL REFERENCES alumnos(id),
       periodo TEXT NOT NULL,
       vencimiento TEXT NOT NULL,
-      total REAL NOT NULL DEFAULT 0,
+      total NUMERIC(12,2) NOT NULL DEFAULT 0,
       estado TEXT NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pago parcial', 'Pagada', 'Vencida')),
       UNIQUE (alumno_id, periodo)
     );
 
     CREATE TABLE IF NOT EXISTS items_cuota (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       cuota_id INTEGER NOT NULL REFERENCES cuotas(id),
       concepto TEXT NOT NULL CHECK (concepto IN ('cuota', 'deporte', 'transporte', 'comedor')),
       referencia_id INTEGER,
       descripcion TEXT NOT NULL,
-      importe REAL NOT NULL CHECK (importe >= 0),
+      importe NUMERIC(12,2) NOT NULL CHECK (importe >= 0),
       estado TEXT NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente', 'Pago informado', 'Pagado'))
     );
 
     CREATE TABLE IF NOT EXISTS facturas (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       cuota_id INTEGER UNIQUE NOT NULL REFERENCES cuotas(id),
       numero TEXT UNIQUE NOT NULL,
       fecha_emision TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      total REAL NOT NULL,
+      total NUMERIC(12,2) NOT NULL,
       archivo_pdf TEXT
     );
 
     CREATE TABLE IF NOT EXISTS ordenes_pago (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       numero TEXT UNIQUE NOT NULL,
       factura_id INTEGER NOT NULL REFERENCES facturas(id),
       padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       fecha TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      total REAL NOT NULL
+      total NUMERIC(12,2) NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS orden_pago_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       orden_pago_id INTEGER NOT NULL REFERENCES ordenes_pago(id),
       item_cuota_id INTEGER NOT NULL REFERENCES items_cuota(id),
       UNIQUE (orden_pago_id, item_cuota_id)
     );
 
     CREATE TABLE IF NOT EXISTS comprobantes_pago (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       factura_id INTEGER NOT NULL REFERENCES facturas(id),
       padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       numero_operacion TEXT UNIQUE NOT NULL,
-      importe REAL NOT NULL CHECK (importe > 0),
+      importe NUMERIC(12,2) NOT NULL CHECK (importe > 0),
       fecha_transferencia TEXT NOT NULL,
       archivo TEXT NOT NULL,
       fecha_carga TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS codigos_recuperacion (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       codigo TEXT NOT NULL,
       vence TEXT NOT NULL,
@@ -249,7 +289,7 @@ export async function initDb() {
     );
 
     CREATE TABLE IF NOT EXISTS envios_mail (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       padre_usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
       tipo TEXT NOT NULL CHECK (tipo IN ('recordatorio', 'deuda')),
       periodo TEXT NOT NULL,
@@ -264,6 +304,27 @@ export async function initDb() {
       descripcion TEXT NOT NULL
     );
   `);
-}
 
-export default dbPromise;
+  // Índices (IF NOT EXISTS evita errores en reinicios)
+  await db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_alumnos_dni ON alumnos(dni);
+    CREATE INDEX IF NOT EXISTS idx_alumnos_legajo ON alumnos(legajo);
+    CREATE INDEX IF NOT EXISTS idx_alumnos_apellido ON alumnos(apellido);
+  `);
+
+  // Ciclo lectivo inicial
+  await db.exec(`
+    INSERT INTO configuracion (clave, valor)
+    VALUES ('ciclo_lectivo', '${new Date().getFullYear()}')
+    ON CONFLICT (clave) DO NOTHING;
+  `);
+
+  // Migración: inscripto_ciclo_lectivo = 1 → año actual
+  const fila = await db.get("SELECT valor FROM configuracion WHERE clave = 'ciclo_lectivo'");
+  if (fila) {
+    await db.run(
+      'UPDATE alumnos SET inscripto_ciclo_lectivo = $1 WHERE inscripto_ciclo_lectivo = 1',
+      [Number(fila.valor)]
+    );
+  }
+}

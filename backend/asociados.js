@@ -1,24 +1,41 @@
 // Detecta si un registro tiene datos asociados en otras tablas, para decidir si
-// se puede eliminar. Las columnas se buscan en el momento: por clave foránea
-// declarada hacia la tabla o por nombre (alumno_id, padre_usuario_id, ...). Así
-// las tablas que se agreguen más adelante quedan cubiertas sin tocar las rutas.
+// se puede eliminar. Usa information_schema de PostgreSQL en lugar de PRAGMA de SQLite.
 
 async function columnasQueApuntan(db, tablaDestino, nombres) {
-  const tablas = await db.all(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+  // 1. Columnas que tienen FK declarada hacia tablaDestino
+  const fks = await db.all(
+    `SELECT kcu.table_name AS tabla, kcu.column_name AS columna
+     FROM information_schema.referential_constraints rc
+     JOIN information_schema.key_column_usage kcu
+       ON kcu.constraint_name = rc.constraint_name
+       AND kcu.constraint_schema = rc.constraint_schema
+     JOIN information_schema.key_column_usage rku
+       ON rku.constraint_name = rc.unique_constraint_name
+       AND rku.constraint_schema = rc.unique_constraint_schema
+     WHERE rku.table_name = ?
+       AND kcu.table_schema = 'public'`,
+    tablaDestino
   );
-  const resultado = [];
-  for (const { name } of tablas) {
-    const columnas = new Set();
-    for (const fk of await db.all(`PRAGMA foreign_key_list("${name}")`)) {
-      if (fk.table === tablaDestino) columnas.add(fk.from);
-    }
-    for (const columna of await db.all(`PRAGMA table_info("${name}")`)) {
-      if (nombres.test(columna.name)) columnas.add(columna.name);
-    }
-    for (const columna of columnas) resultado.push({ tabla: name, columna });
+
+  // 2. Columnas que coinciden con el patrón de nombre (alumno_id, padre_usuario_id, etc.)
+  const porNombre = await db.all(
+    `SELECT table_name AS tabla, column_name AS columna
+     FROM information_schema.columns
+     WHERE table_schema = 'public'`,
+  );
+
+  const resultado = new Map(); // clave "tabla.columna" para deduplicar
+
+  for (const { tabla, columna } of fks) {
+    resultado.set(`${tabla}.${columna}`, { tabla, columna });
   }
-  return resultado;
+  for (const { tabla, columna } of porNombre) {
+    if (nombres.test(columna)) {
+      resultado.set(`${tabla}.${columna}`, { tabla, columna });
+    }
+  }
+
+  return [...resultado.values()];
 }
 
 // tabla: la tabla del registro; nombres: patrón de las columnas que lo referencian;

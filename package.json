@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server\" \"vite\"",
     "server": "node --env-file-if-exists=.env backend/server.js",
+    "start": "node backend/server.js",
     "seed": "node --env-file-if-exists=.env backend/seed.js",
     "crear-admin": "node --env-file-if-exists=.env backend/crear-admin.js",
     "build": "vite build",
@@ -25,11 +26,11 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.14.0",
     "pdfkit": "^0.20.2",
+    "pg": "^8.23.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^6.0.1"
+    "pg": "^8.16.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

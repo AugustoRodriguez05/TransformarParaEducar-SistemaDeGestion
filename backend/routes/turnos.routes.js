@@ -65,7 +65,7 @@ router.get('/disponibilidad', requireRole('profesor'), async (req, res) => {
      ORDER BY d.fecha, d.hora_inicio`,
     profesor.id
   );
-  res.json(franjas.map((f) => ({ ...f, ocupada: f.ocupada === 1 })));
+  res.json(franjas.map((f) => ({ ...f, ocupada: Boolean(f.ocupada) })));
 });
 
 router.post('/disponibilidad', requireRole('profesor'), async (req, res) => {

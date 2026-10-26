@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { initDb } from './db.js';
 
 import authRouter from './routes/auth.routes.js';
@@ -14,12 +16,13 @@ import reportesRouter from './routes/reportes.routes.js';
 import turnosRouter from './routes/turnos.routes.js';
 import notificacionesRouter from './routes/notificaciones.routes.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 initDb().then(() => {
-  console.log('Base de datos SQLite inicializada correctamente.');
+  console.log('Base de datos PostgreSQL inicializada correctamente.');
 }).catch((err) => {
   console.error('Error al inicializar la base de datos', err);
 });
@@ -36,7 +39,15 @@ app.use('/api/turnos', turnosRouter);
 app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api', catalogosRouter);
 
+// En producción, servir el frontend estático (build de Vite)
+if (process.env.NODE_ENV === 'production') {
+  const distDir = path.join(__dirname, '..', 'dist');
+  app.use(express.static(distDir));
+  app.get('*', (_req, res) => res.sendFile(path.join(distDir, 'index.html')));
+}
+
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`Backend de gestión corriendo en http://localhost:${PORT}`);
 });
+

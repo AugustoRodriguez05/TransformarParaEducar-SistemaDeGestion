@@ -45,8 +45,8 @@ async function generarLegajo(db) {
   // que eliminar un alumno no haga repetir un legajo existente.
   const prefijo = `${anio}-`;
   const { ultimo } = await db.get(
-    'SELECT MAX(CAST(SUBSTR(legajo, ?) AS INTEGER)) as ultimo FROM alumnos WHERE legajo LIKE ?',
-    [prefijo.length + 1, `${prefijo}%`]
+    `SELECT MAX(CAST(SUBSTRING(legajo FROM ${prefijo.length + 1}) AS INTEGER)) as ultimo FROM alumnos WHERE legajo LIKE ?`,
+    [`${prefijo}%`]
   );
   const secuencia = String((ultimo || 0) + 1).padStart(4, '0');
   return `${prefijo}${secuencia}`;

@@ -116,7 +116,7 @@ router.put('/:id', async (req, res) => {
   if (await db.get('SELECT id FROM profesores WHERE dni = ? AND id != ?', [dni, profesor.id])) {
     return res.status(400).json({ message: 'Ya existe un profesor registrado con ese DNI' });
   }
-  if (await db.get('SELECT id FROM usuarios WHERE email = ? AND id IS NOT ?', [email, profesor.usuario_id])) {
+  if (await db.get('SELECT id FROM usuarios WHERE email = ? AND id != ?', [email, profesor.usuario_id])) {
     return res.status(400).json({ message: 'Ya existe un usuario registrado con ese email' });
   }
 
