@@ -10,7 +10,8 @@
     "crear-admin": "node --env-file-if-exists=.env backend/crear-admin.js",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -36,6 +37,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
+    "husky": "^9.1.7",
     "vite": "^8.0.10"
   }
 }
