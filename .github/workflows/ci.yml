@@ -27,5 +27,8 @@ jobs:
       - name: Revisar el código con ESLint
         run: npm run lint
 
+      - name: Ejecutar pruebas unitarias
+        run: npm test
+
       - name: Compilar el proyecto
         run: npm run build
