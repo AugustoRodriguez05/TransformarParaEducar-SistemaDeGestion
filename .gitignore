@@ -35,6 +35,9 @@ desktop.ini
 
 # Testing
 coverage/
+cypress.env.json
+cypress/screenshots/
+cypress/videos/
 
 # Claude Code
 .claude/
