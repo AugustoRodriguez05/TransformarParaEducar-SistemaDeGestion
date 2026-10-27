@@ -2,36 +2,58 @@ import { useEffect, useState } from 'react';
 import { Download, FileBarChart, Table } from 'lucide-react';
 import { apiFetch, apiDownload } from '../api';
 import TituloSeccion from '../components/TituloSeccion';
+import { NIVELES } from '../validaciones';
+
+// Cada reporte: su ruta en /api/reportes y sus filtros, [parámetro, obligatorio].
+const REPORTES = [
+  { tipo: 'curso', etiqueta: 'Alumnos por curso', filtros: [['curso_id', true]] },
+  { tipo: 'materia', etiqueta: 'Alumnos por materia', filtros: [['materia_id', true], ['curso_id', false]] },
+  { tipo: 'docentes-nivel', etiqueta: 'Docentes por nivel educativo', filtros: [['nivel', true]] },
+  { tipo: 'deporte', etiqueta: 'Alumnos por deporte', filtros: [['deporte_id', true]] },
+  { tipo: 'deporte-nivel', etiqueta: 'Alumnos por deporte y nivel', filtros: [['deporte_id', true], ['nivel', true]] },
+  {
+    tipo: 'deporte-detalle',
+    etiqueta: 'Alumnos por deporte, nivel, horario y profesor',
+    filtros: [['deporte_id', false], ['nivel', false]]
+  },
+  { tipo: 'recorrido', etiqueta: 'Alumnos por recorrido de transporte', filtros: [['recorrido_id', true]] }
+];
+
+// Etiqueta de cada filtro y, si alguno de los reportes lo usa como opcional, el texto de la opción vacía.
+const FILTROS = {
+  curso_id: { etiqueta: 'Curso', todos: 'Todos los cursos' },
+  materia_id: { etiqueta: 'Materia' },
+  nivel: { etiqueta: 'Nivel', todos: 'Todos los niveles' },
+  deporte_id: { etiqueta: 'Deporte', todos: 'Todos los deportes' },
+  recorrido_id: { etiqueta: 'Recorrido' }
+};
+
+const aOpciones = (lista) => lista.map((x) => ({ valor: x.id, texto: x.nombre }));
 
 export default function Reportes() {
   const [tipo, setTipo] = useState('curso');
-  const [cursos, setCursos] = useState([]);
-  const [materias, setMaterias] = useState([]);
-  const [cursoId, setCursoId] = useState('');
-  const [materiaId, setMateriaId] = useState('');
+  const [opciones, setOpciones] = useState({ nivel: NIVELES.map((n) => ({ valor: n, texto: n })) });
+  const [valores, setValores] = useState({});
   const [reporte, setReporte] = useState(null);
   const [consulta, setConsulta] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelado = false;
-    apiFetch('/api/cursos').then((c) => !cancelado && setCursos(c));
-    apiFetch('/api/materias').then((m) => !cancelado && setMaterias(m));
+    const cargar = (campo, path) => apiFetch(path)
+      .then((lista) => !cancelado && setOpciones((o) => ({ ...o, [campo]: aOpciones(lista) })));
+    cargar('curso_id', '/api/cursos');
+    cargar('materia_id', '/api/materias');
+    cargar('deporte_id', '/api/servicios/deportes');
+    cargar('recorrido_id', '/api/servicios/recorridos');
     return () => { cancelado = true; };
   }, []);
 
-  const armarConsulta = () => {
-    if (tipo === 'curso') {
-      return cursoId ? `/api/reportes/curso?curso_id=${cursoId}` : null;
-    }
-    if (!materiaId) return null;
-    return `/api/reportes/materia?materia_id=${materiaId}${cursoId ? `&curso_id=${cursoId}` : ''}`;
-  };
+  const { filtros } = REPORTES.find((r) => r.tipo === tipo);
 
   const cambiarTipo = (nuevo) => {
     setTipo(nuevo);
-    setCursoId('');
-    setMateriaId('');
+    setValores({});
     setReporte(null);
     setError('');
   };
@@ -39,8 +61,10 @@ export default function Reportes() {
   const generar = async (e) => {
     e.preventDefault();
     setError('');
-    const path = armarConsulta();
-    if (!path) return;
+    if (filtros.some(([campo, obligatorio]) => obligatorio && !valores[campo])) return;
+    const params = new URLSearchParams();
+    filtros.forEach(([campo]) => valores[campo] && params.set(campo, valores[campo]));
+    const path = `/api/reportes/${tipo}?${params}`;
     try {
       setReporte(await apiFetch(path));
       setConsulta(path);
@@ -68,28 +92,23 @@ export default function Reportes() {
           <label>
             Tipo de reporte
             <select value={tipo} onChange={(e) => cambiarTipo(e.target.value)}>
-              <option value="curso">Alumnos por curso</option>
-              <option value="materia">Alumnos por materia</option>
+              {REPORTES.map((r) => <option key={r.tipo} value={r.tipo}>{r.etiqueta}</option>)}
             </select>
           </label>
 
-          {tipo === 'materia' && (
-            <label>
-              Materia
-              <select value={materiaId} onChange={(e) => setMateriaId(e.target.value)} required>
-                <option value="">Seleccionar…</option>
-                {materias.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+          {filtros.map(([campo, obligatorio]) => (
+            <label key={campo}>
+              {obligatorio ? FILTROS[campo].etiqueta : `${FILTROS[campo].etiqueta} (opcional)`}
+              <select
+                value={valores[campo] || ''}
+                onChange={(e) => setValores({ ...valores, [campo]: e.target.value })}
+                required={obligatorio}
+              >
+                <option value="">{obligatorio ? 'Seleccionar…' : FILTROS[campo].todos}</option>
+                {(opciones[campo] || []).map((o) => <option key={o.valor} value={o.valor}>{o.texto}</option>)}
               </select>
             </label>
-          )}
-
-          <label>
-            {tipo === 'materia' ? 'Curso (opcional)' : 'Curso'}
-            <select value={cursoId} onChange={(e) => setCursoId(e.target.value)} required={tipo === 'curso'}>
-              <option value="">{tipo === 'materia' ? 'Todos los cursos' : 'Seleccionar…'}</option>
-              {cursos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-          </label>
+          ))}
         </div>
         <div className="form-actions">
           <button type="submit"><FileBarChart size={18} aria-hidden="true" />Generar reporte</button>
@@ -114,13 +133,15 @@ export default function Reportes() {
             <p>No hay resultados para los filtros seleccionados.</p>
           ) : (
             <div className="tabla-scroll">
-              <table className="data-table">
+              <table className="data-table tabla-tarjetas">
                 <thead>
                   <tr>{reporte.columnas.map((c) => <th key={c.key}>{c.label}</th>)}</tr>
                 </thead>
                 <tbody>
                   {reporte.filas.map((f, i) => (
-                    <tr key={i}>{reporte.columnas.map((c) => <td key={c.key}>{f[c.key]}</td>)}</tr>
+                    <tr key={i}>
+                      {reporte.columnas.map((c) => <td key={c.key} data-label={c.label}>{f[c.key]}</td>)}
+                    </tr>
                   ))}
                 </tbody>
               </table>

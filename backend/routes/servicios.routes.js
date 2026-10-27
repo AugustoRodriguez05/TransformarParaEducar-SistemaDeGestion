@@ -17,7 +17,12 @@ function solapan(inicioA, finA, inicioB, finB) {
 
 router.get('/deportes', async (req, res) => {
   const db = await dbPromise;
-  res.json(await db.all('SELECT * FROM deportes ORDER BY nombre'));
+  res.json(await db.all(
+    `SELECT d.*, p.nombre as profesor_nombre, p.apellido as profesor_apellido
+     FROM deportes d
+     LEFT JOIN profesores p ON p.id = d.profesor_id
+     ORDER BY d.nombre`
+  ));
 });
 
 router.get('/recorridos', async (req, res) => {
@@ -34,27 +39,37 @@ function validarDeporte({ nombre, dia, hora_inicio, hora_fin }) {
   return validarRangoHorario(hora_inicio, hora_fin);
 }
 
+// Cada deporte tiene un profesor responsable, que tiene que existir y estar activo.
+async function validarProfesorResponsable(db, profesorId) {
+  const id = Number(profesorId);
+  if (!Number.isInteger(id) || id <= 0) return 'Seleccioná el profesor responsable.';
+  const profesor = await db.get('SELECT estado FROM profesores WHERE id = ?', id);
+  if (!profesor) return 'El profesor responsable no existe.';
+  if (profesor.estado !== 'Activo') return 'El profesor responsable tiene que estar activo.';
+  return null;
+}
+
 router.post('/deportes', requireRole('administrador'), async (req, res) => {
-  const error = validarDeporte(req.body);
+  const db = await dbPromise;
+  const error = validarDeporte(req.body) || await validarProfesorResponsable(db, req.body.profesor_id);
   if (error) return res.status(400).json({ message: error });
 
-  const db = await dbPromise;
   const nombre = limpiar(req.body.nombre);
   if (await db.get('SELECT id FROM deportes WHERE nombre = ?', nombre)) {
     return res.status(409).json({ message: 'Ya existe un deporte con ese nombre' });
   }
   const result = await db.run(
-    'INSERT INTO deportes (nombre, dia, hora_inicio, hora_fin) VALUES (?, ?, ?, ?)',
-    [nombre, req.body.dia, req.body.hora_inicio, req.body.hora_fin]
+    'INSERT INTO deportes (nombre, dia, hora_inicio, hora_fin, profesor_id) VALUES (?, ?, ?, ?, ?)',
+    [nombre, req.body.dia, req.body.hora_inicio, req.body.hora_fin, Number(req.body.profesor_id)]
   );
   res.status(201).json(await db.get('SELECT * FROM deportes WHERE id = ?', result.lastID));
 });
 
 router.put('/deportes/:id', requireRole('administrador'), async (req, res) => {
-  const error = validarDeporte(req.body);
+  const db = await dbPromise;
+  const error = validarDeporte(req.body) || await validarProfesorResponsable(db, req.body.profesor_id);
   if (error) return res.status(400).json({ message: error });
 
-  const db = await dbPromise;
   const deporte = await db.get('SELECT * FROM deportes WHERE id = ?', req.params.id);
   if (!deporte) return res.status(404).json({ message: 'Deporte no encontrado' });
 
@@ -75,8 +90,8 @@ router.put('/deportes/:id', requireRole('administrador'), async (req, res) => {
   }
 
   await db.run(
-    'UPDATE deportes SET nombre = ?, dia = ?, hora_inicio = ?, hora_fin = ? WHERE id = ?',
-    [nombre, req.body.dia, req.body.hora_inicio, req.body.hora_fin, deporte.id]
+    'UPDATE deportes SET nombre = ?, dia = ?, hora_inicio = ?, hora_fin = ?, profesor_id = ? WHERE id = ?',
+    [nombre, req.body.dia, req.body.hora_inicio, req.body.hora_fin, Number(req.body.profesor_id), deporte.id]
   );
   res.json(await db.get('SELECT * FROM deportes WHERE id = ?', deporte.id));
 });
