@@ -21,6 +21,9 @@ const NAV_POR_ROL = {
     { to: '/panel-familia', label: 'Panel de familia' },
     { to: '/turnos', label: 'Turnos' },
     { to: '/notificaciones', label: 'Notificaciones', conContador: true }
+  ],
+  alumno: [
+    { to: '/mi-panel', label: 'Mi panel' }
   ]
 };
 
@@ -59,7 +62,7 @@ export default function Layout() {
     setMenuAbierto(false);
   }
 
-  const tieneNotificaciones = user && user.rol !== 'administrador';
+  const tieneNotificaciones = user && ['profesor', 'padre'].includes(user.rol);
 
   useEffect(() => {
     if (!tieneNotificaciones) return;

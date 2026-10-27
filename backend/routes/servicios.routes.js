@@ -9,7 +9,7 @@ import {
 const router = express.Router();
 
 router.use(authenticate);
-router.use(requireRole('administrador', 'padre'));
+router.use(requireRole('administrador', 'padre', 'alumno'));
 
 const MAX_DEPORTES = 2;
 
@@ -137,7 +137,7 @@ router.delete('/deportes/:id', requireRole('administrador'), async (req, res) =>
 });
 
 // El administrador opera sobre cualquier alumno; el padre solo sobre sus hijos
-// vinculados (se verifica en la base, no en el frontend).
+// vinculados, y el alumno solo sobre sí mismo (se verifica en la base, no en el frontend).
 async function autorizarAlumno(req, res, next) {
   const db = await dbPromise;
   const alumno = await db.get('SELECT * FROM alumnos WHERE id = ?', req.params.alumnoId);
@@ -151,6 +151,9 @@ async function autorizarAlumno(req, res, next) {
     if (!vinculo) {
       return res.status(403).json({ message: 'No tenés acceso a la información de este alumno' });
     }
+  }
+  if (req.user.rol === 'alumno' && alumno.usuario_id !== req.user.id) {
+    return res.status(403).json({ message: 'No tenés acceso a la información de este alumno' });
   }
 
   req.alumno = alumno;

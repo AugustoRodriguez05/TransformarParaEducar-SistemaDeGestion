@@ -4,7 +4,7 @@
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TYPE user_role AS ENUM ('administrador', 'profesor', 'padre');
+CREATE TYPE user_role AS ENUM ('administrador', 'profesor', 'padre', 'alumno');
 CREATE TYPE estado_legajo AS ENUM ('Activo', 'Inactivo');
 CREATE TYPE dia_semana AS ENUM ('Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes');
 
@@ -58,12 +58,20 @@ CREATE TABLE alumnos (
     telefono VARCHAR(16),
     email VARCHAR(100),
     estado estado_legajo DEFAULT 'Activo',
-    inscripto_ciclo_lectivo INTEGER DEFAULT 0 -- año del ciclo lectivo en que se inscribió (0 = nunca)
+    inscripto_ciclo_lectivo INTEGER DEFAULT 0, -- año del ciclo lectivo en que se inscribió (0 = nunca)
+    usuario_id UUID UNIQUE REFERENCES usuarios(id) -- acceso del alumno al sistema (opcional)
 );
 
 -- Domicilio, teléfono y email de alumnos, y legajo, especialidad y teléfono de profesores,
 -- se agregaron después. En una base existente, backend/db.js los suma al iniciar con
 -- ALTER TABLE ... ADD COLUMN IF NOT EXISTS y completa el legajo de los profesores que no lo tienen.
+
+-- Rol alumno: cada alumno puede tener su propio usuario para ver su panel. Se agregó
+-- después; en una base existente el cambio es solo aditivo:
+--   ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'alumno';
+--   ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS usuario_id UUID UNIQUE REFERENCES usuarios(id);
+-- En backend/db.js el rol es TEXT con un CHECK (no un enum): el equivalente que hace al
+-- iniciar es ampliar ese CHECK para que admita 'alumno', sin modificar ningún usuario.
 
 -- Requerimiento 03: asignación de materias/cursos a profesores
 CREATE TABLE asignaciones (

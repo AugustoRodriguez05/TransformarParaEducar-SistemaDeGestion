@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDown, BadgeCheck, ClipboardList, Eye, FileText, GraduationCap, Hash, IdCard,
+  ArrowDown, BadgeCheck, ClipboardList, Eye, EyeOff, FileText, GraduationCap, Hash, IdCard, KeyRound,
   Pencil, RotateCcw, Save, Search, Trash2, User, UserPlus, Users
 } from 'lucide-react';
 import { apiFetch } from '../api';
@@ -11,8 +11,9 @@ import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
 import {
   limpiar, soloErrores, validarDni, validarDomicilio, validarEmail, validarFechaNacimiento,
-  validarNombrePersona, validarTelefono
+  validarNombrePersona, validarPasswordNueva, validarTelefono
 } from '../validaciones';
+import './Alumnos.css';
 
 const ALUMNO_VACIO = {
   nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '', domicilio: '', telefono: '', email: ''
@@ -31,6 +32,10 @@ export default function Alumnos() {
   const [buscado, setBuscado] = useState(false);
   const [alumnoServicios, setAlumnoServicios] = useState(null);
   const [alumnoFicha, setAlumnoFicha] = useState(null);
+  // Formulario "Crear acceso" de la ficha: null mientras está cerrado.
+  const [acceso, setAcceso] = useState(null);
+  const [erroresAcceso, setErroresAcceso] = useState({});
+  const [verPassword, setVerPassword] = useState(false);
 
   const cargarAlumnos = async (q = '') => {
     const params = q ? `?q=${encodeURIComponent(q)}` : '';
@@ -164,7 +169,40 @@ export default function Alumnos() {
   // Ficha del alumno: sus acciones reutilizan las mismas funciones que la tabla.
   const abrirFicha = (alumno) => {
     setError('');
+    setAcceso(null);
     setAlumnoFicha(alumno);
+  };
+
+  // Crea el usuario del alumno con su email; si no tiene, se pide en el formulario.
+  const abrirAcceso = () => {
+    setError('');
+    setErroresAcceso({});
+    setVerPassword(false);
+    setAcceso({ email: '', password: '' });
+  };
+
+  const crearAcceso = async (e) => {
+    e.preventDefault();
+    const email = limpiar(acceso.email);
+    const encontrados = soloErrores({
+      email: alumnoFicha.email ? null : validarEmail(email),
+      password: validarPasswordNueva(acceso.password)
+    });
+    setErroresAcceso(encontrados);
+    if (Object.keys(encontrados).length > 0) return;
+
+    setError('');
+    try {
+      const actualizado = await apiFetch(`/api/alumnos/${alumnoFicha.id}/acceso`, {
+        method: 'POST',
+        body: JSON.stringify({ email, password: acceso.password })
+      });
+      setAlumnoFicha(actualizado);
+      setAcceso(null);
+      await cargarAlumnos(query);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const editarDesdeFicha = () => {
@@ -366,9 +404,56 @@ export default function Alumnos() {
                   : <><RotateCcw size={16} aria-hidden="true" />Reactivar</>}
               </button>
               <button className="btn-accion btn-eliminar" onClick={eliminarDesdeFicha}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
+              {!alumnoFicha.usuario_id && !acceso && (
+                <button className="btn-accion btn-confirmar" onClick={abrirAcceso}><KeyRound size={16} aria-hidden="true" />Crear acceso</button>
+              )}
             </>
           )}
         >
+          {acceso && (
+            <form onSubmit={crearAcceso}>
+              <div className="form-grid">
+                {!alumnoFicha.email && (
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      value={acceso.email}
+                      onChange={(e) => setAcceso({ ...acceso, email: e.target.value })}
+                      required
+                    />
+                    {erroresAcceso.email && <small className="error">{erroresAcceso.email}</small>}
+                  </label>
+                )}
+                <label>
+                  Contraseña de acceso
+                  <span className="acceso-password">
+                    <input
+                      type={verPassword ? 'text' : 'password'}
+                      value={acceso.password}
+                      onChange={(e) => setAcceso({ ...acceso, password: e.target.value })}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn-accion btn-ver btn-icono"
+                      aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      title={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      aria-pressed={verPassword}
+                      onClick={() => setVerPassword((v) => !v)}
+                    >
+                      {verPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                    </button>
+                  </span>
+                  {erroresAcceso.password && <small className="error">{erroresAcceso.password}</small>}
+                </label>
+              </div>
+              <div className="form-actions">
+                <button type="submit"><KeyRound size={18} aria-hidden="true" />Crear acceso</button>
+                <button type="button" className="secondary" onClick={() => setAcceso(null)}>Cancelar</button>
+              </div>
+            </form>
+          )}
           {error && <p className="error">{error}</p>}
           <FichaAlumno key={alumnoFicha.id} alumno={alumnoFicha} />
         </Modal>

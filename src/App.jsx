@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Alumnos from './pages/Alumnos';
 import Profesores from './pages/Profesores';
 import PanelFamilia from './pages/PanelFamilia';
+import PanelAlumno from './pages/PanelAlumno';
 import Padres from './pages/Padres';
 import Reportes from './pages/Reportes';
 import Configuracion from './pages/Configuracion';
@@ -91,6 +92,14 @@ function App() {
               element={
                 <ProtectedRoute roles={['padre']}>
                   <PanelFamilia />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="mi-panel"
+              element={
+                <ProtectedRoute roles={['alumno']}>
+                  <PanelAlumno />
                 </ProtectedRoute>
               }
             />

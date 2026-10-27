@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { DIAS, NIVELES } from './constantes.js';
+import { DIAS, NIVELES, ROLES } from './constantes.js';
 import { generarLegajo } from './legajos.js';
 
 const { Pool } = pg;
@@ -110,6 +110,7 @@ export default db;
 
 const SQL_DIAS = DIAS.map((d) => `'${d}'`).join(',');
 const SQL_NIVELES = NIVELES.map((n) => `'${n}'`).join(',');
+const SQL_ROLES = ROLES.map((r) => `'${r}'`).join(',');
 
 export async function initDb() {
   await db.exec(`
@@ -119,7 +120,7 @@ export async function initDb() {
       apellido TEXT NOT NULL,
       email TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      rol TEXT NOT NULL CHECK (rol IN ('administrador', 'profesor', 'padre')),
+      rol TEXT NOT NULL CHECK (rol IN (${SQL_ROLES})),
       activo INTEGER NOT NULL DEFAULT 1
     );
 
@@ -344,6 +345,29 @@ export async function initDb() {
     ALTER TABLE profesores ADD COLUMN IF NOT EXISTS especialidad TEXT;
     ALTER TABLE profesores ADD COLUMN IF NOT EXISTS telefono TEXT;
     ALTER TABLE deportes ADD COLUMN IF NOT EXISTS nivel TEXT CHECK (nivel IN (${SQL_NIVELES}));
+    ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS usuario_id INTEGER UNIQUE REFERENCES usuarios(id);
+  `);
+
+  // Rol alumno: el rol es TEXT con un CHECK (no un tipo enum), así que el
+  // equivalente a ADD VALUE IF NOT EXISTS es ampliar ese CHECK. Solo se hace si
+  // todavía no admite 'alumno'; los usuarios existentes no cambian.
+  await db.exec(`
+    DO $$
+    DECLARE restriccion record;
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'usuarios'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%''alumno''%'
+      ) THEN
+        FOR restriccion IN
+          SELECT conname FROM pg_constraint
+          WHERE conrelid = 'usuarios'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%rol%'
+        LOOP
+          EXECUTE format('ALTER TABLE usuarios DROP CONSTRAINT %I', restriccion.conname);
+        END LOOP;
+        ALTER TABLE usuarios ADD CONSTRAINT usuarios_rol_check CHECK (rol IN (${SQL_ROLES}));
+      END IF;
+    END $$;
   `);
 
   // Grupos de deportes: el mismo deporte puede tener varios grupos según nivel y

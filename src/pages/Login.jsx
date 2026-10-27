@@ -3,6 +3,9 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 
+// Al iniciar sesión, el alumno entra directo a su panel; el resto, al inicio.
+const paginaInicial = (usuario) => (usuario.rol === 'alumno' ? '/mi-panel' : '/dashboard');
+
 export default function Login() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
@@ -11,15 +14,15 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={paginaInicial(user)} replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const usuario = await login(email, password);
+      navigate(paginaInicial(usuario));
     } catch (err) {
       setError(err.message);
     } finally {

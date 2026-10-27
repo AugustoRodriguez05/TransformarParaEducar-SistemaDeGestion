@@ -17,8 +17,9 @@ router.get('/', async (req, res) => {
 });
 
 // Activar o desactivar: un usuario inactivo no puede iniciar sesión. Si es un
-// profesor, su estado en profesores cambia en la misma transacción.
-// Orden de bloqueo (igual en profesores.routes.js): administradores, usuario, profesor.
+// profesor o un alumno, el estado de su legajo cambia en la misma transacción.
+// Orden de bloqueo (igual en profesores.routes.js y alumnos.routes.js):
+// administradores, usuario, profesor o alumno.
 router.patch('/:id/estado', async (req, res) => {
   const { estado } = req.body;
   if (!['Activo', 'Inactivo'].includes(estado)) {
@@ -43,6 +44,9 @@ router.patch('/:id/estado', async (req, res) => {
     await tx.run('UPDATE usuarios SET activo = ? WHERE id = ?', [estado === 'Activo' ? 1 : 0, usuario.id]);
     if (usuario.rol === 'profesor') {
       await tx.run('UPDATE profesores SET estado = ? WHERE usuario_id = ?', [estado, usuario.id]);
+    }
+    if (usuario.rol === 'alumno') {
+      await tx.run('UPDATE alumnos SET estado = ? WHERE usuario_id = ?', [estado, usuario.id]);
     }
     return { usuario: await tx.get(`${SELECT_USUARIO} WHERE id = ?`, usuario.id) };
   });
