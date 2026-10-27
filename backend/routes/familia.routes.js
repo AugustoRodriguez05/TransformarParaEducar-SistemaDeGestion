@@ -2,6 +2,7 @@ import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { obtenerCicloLectivo } from '../configuracion.js';
+import { materiasDelCurso } from '../materias.js';
 
 const router = express.Router();
 
@@ -43,18 +44,7 @@ router.get('/hijos/:alumnoId', async (req, res) => {
   );
   if (!alumno) return res.status(404).json({ message: 'Alumno no encontrado' });
 
-  const materias = alumno.curso_id
-    ? await db.all(
-        `SELECT m.nombre as materia_nombre, p.nombre as profesor_nombre, p.apellido as profesor_apellido,
-                asig.dia, asig.hora_inicio, asig.hora_fin
-         FROM asignaciones asig
-         JOIN materias m ON m.id = asig.materia_id
-         JOIN profesores p ON p.id = asig.profesor_id
-         WHERE asig.curso_id = ?
-         ORDER BY asig.dia, asig.hora_inicio`,
-        alumno.curso_id
-      )
-    : [];
+  const materias = await materiasDelCurso(db, alumno.curso_id);
 
   const ciclo = await obtenerCicloLectivo(db);
   res.json({

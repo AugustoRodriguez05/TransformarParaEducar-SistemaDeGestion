@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  BookUser, Bus, Cake, CalendarDays, GraduationCap, House, IdCard, Mail, Phone, Settings, User, Users,
-  Utensils, Volleyball
+  BookOpen, BookUser, Bus, Cake, CalendarDays, GraduationCap, House, IdCard, Layers, Mail, Phone, Settings,
+  User, Users, Utensils, Volleyball
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import { formatearFecha } from '../fecha';
 import Dato from './FichaDato';
+import MateriasCurso from './MateriasCurso';
 
 function calcularEdad(fechaNacimiento) {
   const [anio, mes, dia] = fechaNacimiento.split('-').map(Number);
@@ -20,6 +21,7 @@ function calcularEdad(fechaNacimiento) {
 // El estado y las acciones se muestran en el encabezado de la ventana.
 export default function FichaAlumno({ alumno }) {
   const [padres, setPadres] = useState(null);
+  const [materias, setMaterias] = useState(null);
   const [servicios, setServicios] = useState(null);
   const [error, setError] = useState('');
 
@@ -27,11 +29,13 @@ export default function FichaAlumno({ alumno }) {
     let cancelado = false;
     Promise.all([
       apiFetch(`/api/alumnos/${alumno.id}/padres`),
+      apiFetch(`/api/alumnos/${alumno.id}/materias`),
       apiFetch(`/api/servicios/alumnos/${alumno.id}`)
     ])
-      .then(([p, s]) => {
+      .then(([p, m, s]) => {
         if (cancelado) return;
         setPadres(p);
+        setMaterias(m);
         setServicios(s);
       })
       .catch((err) => !cancelado && setError(err.message));
@@ -51,6 +55,7 @@ export default function FichaAlumno({ alumno }) {
         <Dato icono={GraduationCap} titulo="Curso">
           {alumno.curso_nombre ? <span className="badge curso">{alumno.curso_nombre}</span> : '—'}
         </Dato>
+        <Dato icono={Layers} titulo="Nivel">{alumno.curso_nivel || '—'}</Dato>
         <Dato icono={House} titulo="Domicilio">{alumno.domicilio || '—'}</Dato>
         <Dato icono={Phone} titulo="Teléfono">{alumno.telefono || '—'}</Dato>
         <Dato icono={Mail} titulo="Email">{alumno.email || '—'}</Dato>
@@ -73,6 +78,11 @@ export default function FichaAlumno({ alumno }) {
             ))}
           </ul>
         ))}
+      </section>
+
+      <section className="ficha-seccion">
+        <h4 className="ficha-titulo"><BookOpen size={20} aria-hidden="true" />Materias y profesores</h4>
+        {materias && <MateriasCurso materias={materias} />}
       </section>
 
       <section className="ficha-seccion">
