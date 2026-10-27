@@ -209,9 +209,13 @@ router.get('/alumnos/:alumnoId', autorizarAlumno, async (req, res) => {
   res.json(await obtenerServicios(db, req.alumno));
 });
 
+// El alumno solo consulta sus servicios: inscribir y dar de baja quedan para el
+// administrador y el padre (al alumno se le responde 403).
+const puedeModificarServicios = requireRole('administrador', 'padre');
+
 // HU5 - Inscripción a deportes: máximo 2, sin superposición de horarios, un solo grupo
 // por deporte y, si el grupo tiene nivel, solo alumnos de ese nivel
-router.post('/alumnos/:alumnoId/deportes', autorizarAlumno, exigirAlumnoActivo, async (req, res) => {
+router.post('/alumnos/:alumnoId/deportes', puedeModificarServicios, autorizarAlumno, exigirAlumnoActivo, async (req, res) => {
   const db = await dbPromise;
   const { deporte_id } = req.body;
   if (!deporte_id) return res.status(400).json({ message: 'Falta seleccionar un deporte' });
@@ -260,7 +264,7 @@ router.post('/alumnos/:alumnoId/deportes', autorizarAlumno, exigirAlumnoActivo, 
   res.status(201).json(await obtenerServicios(db, req.alumno));
 });
 
-router.delete('/alumnos/:alumnoId/deportes/:deporteId', autorizarAlumno, async (req, res) => {
+router.delete('/alumnos/:alumnoId/deportes/:deporteId', puedeModificarServicios, autorizarAlumno, async (req, res) => {
   const db = await dbPromise;
   await db.run(
     "UPDATE inscripciones_deportivas SET estado = 'Baja' WHERE alumno_id = ? AND deporte_id = ?",
@@ -270,7 +274,7 @@ router.delete('/alumnos/:alumnoId/deportes/:deporteId', autorizarAlumno, async (
 });
 
 // HU6 - Transporte: una única inscripción activa por alumno
-router.post('/alumnos/:alumnoId/transporte', autorizarAlumno, exigirAlumnoActivo, async (req, res) => {
+router.post('/alumnos/:alumnoId/transporte', puedeModificarServicios, autorizarAlumno, exigirAlumnoActivo, async (req, res) => {
   const db = await dbPromise;
   const { recorrido_id } = req.body;
   if (!recorrido_id) return res.status(400).json({ message: 'Falta seleccionar un recorrido' });
@@ -294,7 +298,7 @@ router.post('/alumnos/:alumnoId/transporte', autorizarAlumno, exigirAlumnoActivo
 });
 
 // La baja cambia el estado; el registro se conserva para los reportes.
-router.delete('/alumnos/:alumnoId/transporte', autorizarAlumno, async (req, res) => {
+router.delete('/alumnos/:alumnoId/transporte', puedeModificarServicios, autorizarAlumno, async (req, res) => {
   const db = await dbPromise;
   await db.run(
     "UPDATE inscripciones_transporte SET estado = 'Baja' WHERE alumno_id = ? AND estado = 'Activa'",
@@ -304,7 +308,7 @@ router.delete('/alumnos/:alumnoId/transporte', autorizarAlumno, async (req, res)
 });
 
 // HU6 - Comedor
-router.post('/alumnos/:alumnoId/comedor', autorizarAlumno, exigirAlumnoActivo, async (req, res) => {
+router.post('/alumnos/:alumnoId/comedor', puedeModificarServicios, autorizarAlumno, exigirAlumnoActivo, async (req, res) => {
   const db = await dbPromise;
   const activa = await db.get(
     "SELECT id FROM inscripciones_comedor WHERE alumno_id = ? AND estado = 'Activa'",
@@ -318,7 +322,7 @@ router.post('/alumnos/:alumnoId/comedor', autorizarAlumno, exigirAlumnoActivo, a
   res.status(201).json(await obtenerServicios(db, req.alumno));
 });
 
-router.delete('/alumnos/:alumnoId/comedor', autorizarAlumno, async (req, res) => {
+router.delete('/alumnos/:alumnoId/comedor', puedeModificarServicios, autorizarAlumno, async (req, res) => {
   const db = await dbPromise;
   await db.run(
     "UPDATE inscripciones_comedor SET estado = 'Baja' WHERE alumno_id = ? AND estado = 'Activa'",

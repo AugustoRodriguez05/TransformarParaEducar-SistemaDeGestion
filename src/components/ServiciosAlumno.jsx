@@ -5,7 +5,9 @@ import { textoGrupo } from '../deportes';
 import { validarNivelDelGrupo } from '../validaciones';
 import TituloSeccion from './TituloSeccion';
 
-export default function ServiciosAlumno({ alumnoId }) {
+// soloLectura: muestra los servicios sin selects ni botones para inscribir o dar
+// de baja (el panel del alumno; el backend tampoco se lo permite).
+export default function ServiciosAlumno({ alumnoId, soloLectura = false }) {
   const [deportes, setDeportes] = useState([]);
   const [recorridos, setRecorridos] = useState([]);
   const [servicios, setServicios] = useState(null);
@@ -15,13 +17,16 @@ export default function ServiciosAlumno({ alumnoId }) {
 
   useEffect(() => {
     let cancelado = false;
-    apiFetch('/api/servicios/deportes').then((d) => !cancelado && setDeportes(d));
-    apiFetch('/api/servicios/recorridos').then((r) => !cancelado && setRecorridos(r));
+    // Los catálogos solo hacen falta para elegir en los selects.
+    if (!soloLectura) {
+      apiFetch('/api/servicios/deportes').then((d) => !cancelado && setDeportes(d));
+      apiFetch('/api/servicios/recorridos').then((r) => !cancelado && setRecorridos(r));
+    }
     apiFetch(`/api/servicios/alumnos/${alumnoId}`)
       .then((s) => !cancelado && setServicios(s))
       .catch((err) => !cancelado && setError(err.message));
     return () => { cancelado = true; };
-  }, [alumnoId]);
+  }, [alumnoId, soloLectura]);
 
   const ejecutar = async (path, method, body) => {
     setError('');
@@ -51,35 +56,41 @@ export default function ServiciosAlumno({ alumnoId }) {
         {servicios.deportes.map((d) => (
           <li key={d.id}>
             <span>{textoGrupo(d)}</span>
-            <button className="btn-accion btn-baja" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            {!soloLectura && (
+              <button className="btn-accion btn-baja" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            )}
           </li>
         ))}
       </ul>
-      <div className="servicios-form">
-        <select value={deporteSel} onChange={(e) => setDeporteSel(e.target.value)}>
-          <option value="">Elegir deporte…</option>
-          {gruposDelNivel.map((d) => (
-            <option key={d.id} value={d.id}>{textoGrupo(d)}</option>
-          ))}
-        </select>
-        <button
-          disabled={!deporteSel}
-          onClick={() => { ejecutar('/deportes', 'POST', { deporte_id: deporteSel }); setDeporteSel(''); }}
-        >
-          <Plus size={18} aria-hidden="true" />
-          Inscribir
-        </button>
-      </div>
+      {!soloLectura && (
+        <div className="servicios-form">
+          <select value={deporteSel} onChange={(e) => setDeporteSel(e.target.value)}>
+            <option value="">Elegir deporte…</option>
+            {gruposDelNivel.map((d) => (
+              <option key={d.id} value={d.id}>{textoGrupo(d)}</option>
+            ))}
+          </select>
+          <button
+            disabled={!deporteSel}
+            onClick={() => { ejecutar('/deportes', 'POST', { deporte_id: deporteSel }); setDeporteSel(''); }}
+          >
+            <Plus size={18} aria-hidden="true" />
+            Inscribir
+          </button>
+        </div>
+      )}
 
       <TituloSeccion nivel="h4" icono={Bus}>Transporte</TituloSeccion>
       {servicios.transporte ? (
         <ul className="servicios-lista">
           <li>
             <span>{servicios.transporte.recorrido_nombre}</span>
-            <button className="btn-accion btn-baja" onClick={() => ejecutar('/transporte', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            {!soloLectura && (
+              <button className="btn-accion btn-baja" onClick={() => ejecutar('/transporte', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            )}
           </li>
         </ul>
-      ) : (
+      ) : soloLectura ? <p>Sin inscripción.</p> : (
         <div className="servicios-form">
           <select value={recorridoSel} onChange={(e) => setRecorridoSel(e.target.value)}>
             <option value="">Elegir recorrido…</option>
@@ -100,10 +111,12 @@ export default function ServiciosAlumno({ alumnoId }) {
         <ul className="servicios-lista">
           <li>
             <span>Inscripto al comedor</span>
-            <button className="btn-accion btn-baja" onClick={() => ejecutar('/comedor', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            {!soloLectura && (
+              <button className="btn-accion btn-baja" onClick={() => ejecutar('/comedor', 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
+            )}
           </li>
         </ul>
-      ) : (
+      ) : soloLectura ? <p>Sin inscripción.</p> : (
         <button onClick={() => ejecutar('/comedor', 'POST')}><Plus size={18} aria-hidden="true" />Inscribir al comedor</button>
       )}
 
