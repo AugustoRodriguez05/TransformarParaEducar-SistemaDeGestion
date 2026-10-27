@@ -37,7 +37,7 @@ export default function PanelAlumno() {
           <MateriasCurso materias={datos.materias} />
 
           <TituloSeccion nivel="h4" icono={ClipboardList}>Servicios del alumno</TituloSeccion>
-          <ServiciosAlumno key={alumno.id} alumnoId={alumno.id} />
+          <ServiciosAlumno key={alumno.id} alumnoId={alumno.id} soloLectura />
         </div>
       )}
     </div>
