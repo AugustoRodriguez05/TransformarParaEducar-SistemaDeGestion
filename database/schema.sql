@@ -86,15 +86,24 @@ CREATE TABLE padre_alumno (
 );
 
 -- Requerimiento 02: actividades deportivas
+-- Cada fila es un grupo: un deporte puede tener varios grupos según nivel y horario.
+-- nivel NULL = el grupo es para todos los niveles.
 CREATE TABLE deportes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    nombre VARCHAR(100) UNIQUE NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    nivel VARCHAR(50) CHECK (nivel IN ('Inicial', 'Primario', 'Secundario')),
     dia dia_semana NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
     profesor_id UUID REFERENCES profesores(id),
     CONSTRAINT chk_horario_deporte CHECK (hora_inicio < hora_fin)
 );
+
+-- No se repite la combinación nombre + nivel + día + hora de inicio (un nivel vacío
+-- cuenta como un valor más). Antes el nombre era único: en una base existente,
+-- backend/db.js agrega la columna nivel, crea este índice y recién después quita
+-- la restricción deportes_nombre_key, sin tocar los datos.
+CREATE UNIQUE INDEX deportes_grupo_unico ON deportes (nombre, COALESCE(nivel, ''), dia, hora_inicio);
 
 CREATE TYPE estado_inscripcion AS ENUM ('Activa', 'Baja');
 

@@ -3,6 +3,7 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
+import { DIAS } from '../constantes.js';
 import { validarNivel } from '../validaciones.js';
 
 const router = express.Router();
@@ -112,6 +113,17 @@ async function reporteDocentesPorNivel(db, { nivel }) {
   };
 }
 
+// Cada deporte es un grupo (nombre, nivel y horario): "Fútbol (Primario, Martes 16:00 a 17:30)".
+// Un grupo sin nivel es para todos los niveles.
+const TODOS_LOS_NIVELES = 'Todos los niveles';
+const SQL_NIVEL_GRUPO = `COALESCE(d.nivel, '${TODOS_LOS_NIVELES}')`;
+const SQL_GRUPO = `d.nombre || ' (' || ${SQL_NIVEL_GRUPO} || ', ' || d.dia || ' ' || d.hora_inicio || ' a ' || d.hora_fin || ')'`;
+const SQL_ORDEN_DIA = `array_position(ARRAY[${DIAS.map((d) => `'${d}'`).join(',')}]::text[], d.dia)`;
+
+function textoGrupo(d) {
+  return `${d.nombre} (${d.nivel || TODOS_LOS_NIVELES}, ${d.dia} ${d.hora_inicio} a ${d.hora_fin})`;
+}
+
 // Alumnos activos con inscripción deportiva activa; deporte y nivel filtran si vienen.
 async function alumnosPorDeporte(db, { deporteId, nivel }) {
   const condiciones = ["i.estado = 'Activa'", "a.estado = 'Activo'"];
@@ -124,8 +136,11 @@ async function alumnosPorDeporte(db, { deporteId, nivel }) {
     condiciones.push('c.nivel = ?');
     params.push(nivel);
   }
+  // deporte identifica el grupo completo; grupo, solo nombre y nivel (para cuando el
+  // horario va en su propia columna).
   return db.all(
-    `SELECT d.nombre as deporte,
+    `SELECT ${SQL_GRUPO} as deporte,
+            d.nombre || ' (' || ${SQL_NIVEL_GRUPO} || ')' as grupo,
             c.nivel as nivel,
             d.dia || ' ' || d.hora_inicio || ' a ' || d.hora_fin as horario,
             COALESCE(p.apellido || ', ' || p.nombre, '') as profesor,
@@ -137,7 +152,7 @@ async function alumnosPorDeporte(db, { deporteId, nivel }) {
      LEFT JOIN cursos c ON c.id = a.curso_id
      LEFT JOIN profesores p ON p.id = d.profesor_id
      WHERE ${condiciones.join(' AND ')}
-     ORDER BY d.nombre, c.nivel, c.nombre, a.apellido, a.nombre`,
+     ORDER BY d.nombre, d.nivel NULLS FIRST, ${SQL_ORDEN_DIA}, d.hora_inicio, c.nivel, c.nombre, a.apellido, a.nombre`,
     params
   );
 }
@@ -159,7 +174,7 @@ async function reportePorDeporte(db, { deporte_id }) {
   if (!deporte) return noEncontrado('Deporte no encontrado');
 
   return {
-    titulo: `Alumnos de ${deporte.nombre}`,
+    titulo: `Alumnos de ${textoGrupo(deporte)}`,
     columnas: COLUMNAS_DEPORTE,
     filas: await alumnosPorDeporte(db, { deporteId: deporte.id })
   };
@@ -173,7 +188,7 @@ async function reportePorDeporteYNivel(db, { deporte_id, nivel }) {
   if (!deporte) return noEncontrado('Deporte no encontrado');
 
   return {
-    titulo: `Alumnos de ${deporte.nombre} - nivel ${nivel}`,
+    titulo: `Alumnos de ${textoGrupo(deporte)} - nivel ${nivel}`,
     columnas: COLUMNAS_DEPORTE,
     filas: await alumnosPorDeporte(db, { deporteId: deporte.id, nivel })
   };
@@ -188,7 +203,7 @@ async function reporteDeportesDetallado(db, { deporte_id, nivel }) {
   return {
     titulo: 'Alumnos por deporte, nivel, horario y profesor',
     columnas: [
-      { key: 'deporte', label: 'Deporte' },
+      { key: 'grupo', label: 'Deporte' },
       { key: 'nivel', label: 'Nivel' },
       { key: 'horario', label: 'Horario' },
       { key: 'profesor', label: 'Profesor a cargo' },

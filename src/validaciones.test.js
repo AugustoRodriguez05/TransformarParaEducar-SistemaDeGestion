@@ -20,6 +20,7 @@ import {
   validarDomicilio,
   validarEspecialidad,
   validarNivel,
+  validarNivelDelGrupo,
 } from './validaciones.js'
 
 describe('limpiar', () => {
@@ -398,5 +399,28 @@ describe('validarNivel', () => {
   it('rechaza el nivel escrito con otras mayúsculas o con espacios', () => {
     expect(validarNivel('primario')).toBe(ERROR_NIVEL)
     expect(validarNivel(' Primario')).toBe(ERROR_NIVEL)
+  })
+})
+
+describe('validarNivelDelGrupo', () => {
+  const futbol = { nombre: 'Fútbol', nivel: 'Primario' }
+
+  it('acepta cualquier alumno en un grupo sin nivel (todos los niveles)', () => {
+    expect(validarNivelDelGrupo({ nombre: 'Fútbol', nivel: null }, 'Secundario')).toBeNull()
+    expect(validarNivelDelGrupo({ nombre: 'Fútbol', nivel: '' }, undefined)).toBeNull()
+  })
+
+  it('acepta al alumno del mismo nivel que el grupo', () => {
+    expect(validarNivelDelGrupo(futbol, 'Primario')).toBeNull()
+  })
+
+  it('rechaza al alumno de otro nivel', () => {
+    expect(validarNivelDelGrupo(futbol, 'Secundario'))
+      .toBe('Este grupo de Fútbol es para el nivel Primario y el alumno es de nivel Secundario.')
+  })
+
+  it('rechaza al alumno sin curso con nivel', () => {
+    expect(validarNivelDelGrupo(futbol, null))
+      .toBe('Este grupo de Fútbol es para el nivel Primario y el alumno no tiene un curso con nivel.')
   })
 })
