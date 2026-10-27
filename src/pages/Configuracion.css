@@ -1,0 +1,34 @@
+/* Pantalla de Configuración: tarjetas en grilla. Todo queda dentro de .configuracion. */
+
+/* Cursos | Materias y Deportes | Recorridos, en dos columnas */
+.configuracion-grilla {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.configuracion-grilla > .card { margin: 0; }
+
+.configuracion .card {
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Listas: un elemento por renglón, separados por una línea fina */
+.configuracion .lista-catalogo { margin-top: 16px; }
+
+.configuracion .lista-catalogo li,
+.configuracion .lista-catalogo li:nth-child(even) {
+  padding: 12px 0;
+  background: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.configuracion .lista-catalogo li:last-child { border-bottom: none; }
+
+/* Celular: una tarjeta debajo de la otra */
+@media (max-width: 768px) {
+  .configuracion-grilla { grid-template-columns: minmax(0, 1fr); }
+}
