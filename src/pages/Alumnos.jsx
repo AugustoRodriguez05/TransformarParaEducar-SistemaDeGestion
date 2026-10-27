@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDown, BadgeCheck, ClipboardList, Eye, FileText, GraduationCap, Hash, IdCard, KeyRound,
+  ArrowDown, BadgeCheck, ClipboardList, Eye, EyeOff, FileText, GraduationCap, Hash, IdCard, KeyRound,
   Pencil, RotateCcw, Save, Search, Trash2, User, UserPlus, Users
 } from 'lucide-react';
 import { apiFetch } from '../api';
@@ -13,6 +13,7 @@ import {
   limpiar, soloErrores, validarDni, validarDomicilio, validarEmail, validarFechaNacimiento,
   validarNombrePersona, validarPasswordNueva, validarTelefono
 } from '../validaciones';
+import './Alumnos.css';
 
 const ALUMNO_VACIO = {
   nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '', domicilio: '', telefono: '', email: ''
@@ -34,6 +35,7 @@ export default function Alumnos() {
   // Formulario "Crear acceso" de la ficha: null mientras está cerrado.
   const [acceso, setAcceso] = useState(null);
   const [erroresAcceso, setErroresAcceso] = useState({});
+  const [verPassword, setVerPassword] = useState(false);
 
   const cargarAlumnos = async (q = '') => {
     const params = q ? `?q=${encodeURIComponent(q)}` : '';
@@ -175,6 +177,7 @@ export default function Alumnos() {
   const abrirAcceso = () => {
     setError('');
     setErroresAcceso({});
+    setVerPassword(false);
     setAcceso({ email: '', password: '' });
   };
 
@@ -424,12 +427,24 @@ export default function Alumnos() {
                 )}
                 <label>
                   Contraseña de acceso
-                  <input
-                    type="password"
-                    value={acceso.password}
-                    onChange={(e) => setAcceso({ ...acceso, password: e.target.value })}
-                    required
-                  />
+                  <span className="acceso-password">
+                    <input
+                      type={verPassword ? 'text' : 'password'}
+                      value={acceso.password}
+                      onChange={(e) => setAcceso({ ...acceso, password: e.target.value })}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn-accion btn-ver btn-icono"
+                      aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      title={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                      aria-pressed={verPassword}
+                      onClick={() => setVerPassword((v) => !v)}
+                    >
+                      {verPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                    </button>
+                  </span>
                   {erroresAcceso.password && <small className="error">{erroresAcceso.password}</small>}
                 </label>
               </div>

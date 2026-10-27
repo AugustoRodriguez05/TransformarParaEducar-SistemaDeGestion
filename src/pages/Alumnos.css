@@ -1,0 +1,13 @@
+/* Pantalla de Alumnos */
+
+/* "Crear acceso": la contraseña y, al lado, el botón para mostrarla u ocultarla */
+.acceso-password {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acceso-password input {
+  flex: 1;
+  min-width: 0;
+}
