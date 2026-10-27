@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { DIAS } from './constantes.js';
+import { generarLegajo } from './legajos.js';
 
 const { Pool } = pg;
 
@@ -305,6 +306,17 @@ export async function initDb() {
     );
   `);
 
+  // Columnas agregadas después de crear las tablas: solo se suman si faltan,
+  // sin tocar los datos que ya existen.
+  await db.exec(`
+    ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS domicilio TEXT;
+    ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS telefono TEXT;
+    ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS email TEXT;
+    ALTER TABLE profesores ADD COLUMN IF NOT EXISTS legajo TEXT UNIQUE;
+    ALTER TABLE profesores ADD COLUMN IF NOT EXISTS especialidad TEXT;
+    ALTER TABLE profesores ADD COLUMN IF NOT EXISTS telefono TEXT;
+  `);
+
   // Índices (IF NOT EXISTS evita errores en reinicios)
   await db.exec(`
     CREATE INDEX IF NOT EXISTS idx_alumnos_dni ON alumnos(dni);
@@ -326,5 +338,12 @@ export async function initDb() {
       'UPDATE alumnos SET inscripto_ciclo_lectivo = $1 WHERE inscripto_ciclo_lectivo = 1',
       [Number(fila.valor)]
     );
+  }
+
+  // Migración: legajo para los profesores cargados antes de que existiera el campo
+  const sinLegajo = await db.all('SELECT id FROM profesores WHERE legajo IS NULL ORDER BY id');
+  for (const { id } of sinLegajo) {
+    const legajo = await generarLegajo(db, 'profesores');
+    await db.run('UPDATE profesores SET legajo = ? WHERE id = ? AND legajo IS NULL', [legajo, id]);
   }
 }

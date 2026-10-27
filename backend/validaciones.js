@@ -8,10 +8,13 @@ const FORMATO_DNI = /^\d{7,8}$/;
 const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+const FORMATO_TELEFONO = /^\+?\d{7,15}$/;
 
 export const MAX_NOMBRE_CATALOGO = 60;
 export const MAX_MOTIVO = 200;
 export const MIN_PASSWORD = 6;
+export const MAX_DOMICILIO = 100;
+export const MAX_ESPECIALIDAD = 60;
 
 export function limpiar(valor) {
   return valor === undefined || valor === null ? '' : String(valor).trim();
@@ -89,5 +92,23 @@ export function validarNombreCatalogo(valor) {
 
 export function validarMotivo(valor) {
   if (valor.length > MAX_MOTIVO) return `Motivo: usá como máximo ${MAX_MOTIVO} caracteres.`;
+  return null;
+}
+
+// Teléfono, domicilio y especialidad son opcionales: vacío es válido.
+export function validarTelefono(valor) {
+  if (valor && !FORMATO_TELEFONO.test(valor)) {
+    return 'Teléfono: ingresá entre 7 y 15 números, sin espacios ni guiones (puede empezar con +).';
+  }
+  return null;
+}
+
+export function validarDomicilio(valor) {
+  if (valor.length > MAX_DOMICILIO) return `Domicilio: usá como máximo ${MAX_DOMICILIO} caracteres.`;
+  return null;
+}
+
+export function validarEspecialidad(valor) {
+  if (valor.length > MAX_ESPECIALIDAD) return `Especialidad: usá como máximo ${MAX_ESPECIALIDAD} caracteres.`;
   return null;
 }

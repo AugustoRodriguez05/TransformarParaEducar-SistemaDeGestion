@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
+  MAX_DOMICILIO,
+  MAX_ESPECIALIDAD,
   MAX_NOMBRE_CATALOGO,
   MIN_PASSWORD,
   limpiar,
@@ -13,6 +15,9 @@ import {
   validarFecha,
   validarRangoHorario,
   validarNombreCatalogo,
+  validarTelefono,
+  validarDomicilio,
+  validarEspecialidad,
 } from './validaciones.js'
 
 describe('limpiar', () => {
@@ -286,5 +291,82 @@ describe('validarNombreCatalogo', () => {
     expect(validarNombreCatalogo('a'.repeat(MAX_NOMBRE_CATALOGO))).toBeNull()
     expect(validarNombreCatalogo('a'.repeat(MAX_NOMBRE_CATALOGO + 1)))
       .toBe(`Usá como máximo ${MAX_NOMBRE_CATALOGO} caracteres.`)
+  })
+})
+
+describe('validarTelefono', () => {
+  const ERROR_TELEFONO = 'Ingresá entre 7 y 15 números, sin espacios ni guiones (puede empezar con +).'
+
+  it('acepta un teléfono con solo números', () => {
+    expect(validarTelefono('1145678901')).toBeNull()
+  })
+
+  it('acepta un teléfono que empieza con +', () => {
+    expect(validarTelefono('+5491145678901')).toBeNull()
+  })
+
+  it('acepta el campo vacío porque es opcional', () => {
+    expect(validarTelefono('')).toBeNull()
+    expect(validarTelefono(undefined)).toBeNull()
+  })
+
+  it('acepta 7 y 15 números (límites)', () => {
+    expect(validarTelefono('1234567')).toBeNull()
+    expect(validarTelefono('1'.repeat(15))).toBeNull()
+    expect(validarTelefono('+' + '1'.repeat(15))).toBeNull()
+  })
+
+  it('rechaza 6 números (demasiado corto)', () => {
+    expect(validarTelefono('123456')).toBe(ERROR_TELEFONO)
+    expect(validarTelefono('+123456')).toBe(ERROR_TELEFONO)
+  })
+
+  it('rechaza 16 números (demasiado largo)', () => {
+    expect(validarTelefono('1'.repeat(16))).toBe(ERROR_TELEFONO)
+  })
+
+  it('rechaza letras, espacios, guiones y paréntesis', () => {
+    expect(validarTelefono('11456789AB')).toBe(ERROR_TELEFONO)
+    expect(validarTelefono('11 4567 8901')).toBe(ERROR_TELEFONO)
+    expect(validarTelefono('11-4567-8901')).toBe(ERROR_TELEFONO)
+    expect(validarTelefono('(011)45678901')).toBe(ERROR_TELEFONO)
+  })
+
+  it('rechaza el + en otra posición o repetido', () => {
+    expect(validarTelefono('11456+78901')).toBe(ERROR_TELEFONO)
+    expect(validarTelefono('++541145678901')).toBe(ERROR_TELEFONO)
+    expect(validarTelefono('+')).toBe(ERROR_TELEFONO)
+  })
+})
+
+describe('validarDomicilio', () => {
+  it('acepta un domicilio con letras, números y símbolos', () => {
+    expect(validarDomicilio('Av. San Martín 1234, 2° B')).toBeNull()
+  })
+
+  it('acepta el campo vacío porque es opcional', () => {
+    expect(validarDomicilio('')).toBeNull()
+  })
+
+  it('acepta el máximo de caracteres y rechaza uno más (límite)', () => {
+    expect(validarDomicilio('a'.repeat(MAX_DOMICILIO))).toBeNull()
+    expect(validarDomicilio('a'.repeat(MAX_DOMICILIO + 1)))
+      .toBe(`Usá como máximo ${MAX_DOMICILIO} caracteres.`)
+  })
+})
+
+describe('validarEspecialidad', () => {
+  it('acepta una especialidad', () => {
+    expect(validarEspecialidad('Educación Física')).toBeNull()
+  })
+
+  it('acepta el campo vacío porque es opcional', () => {
+    expect(validarEspecialidad('')).toBeNull()
+  })
+
+  it('acepta el máximo de caracteres y rechaza uno más (límite)', () => {
+    expect(validarEspecialidad('a'.repeat(MAX_ESPECIALIDAD))).toBeNull()
+    expect(validarEspecialidad('a'.repeat(MAX_ESPECIALIDAD + 1)))
+      .toBe(`Usá como máximo ${MAX_ESPECIALIDAD} caracteres.`)
   })
 })

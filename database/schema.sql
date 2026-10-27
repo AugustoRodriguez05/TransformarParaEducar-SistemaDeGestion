@@ -35,10 +35,13 @@ CREATE TABLE materias (
 CREATE TABLE profesores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     usuario_id UUID UNIQUE REFERENCES usuarios(id) ON DELETE SET NULL,
+    legajo VARCHAR(20) UNIQUE, -- AAAA-NNNN, lo genera el backend igual que el de los alumnos
     nombre VARCHAR(100) NOT NULL,
     apellido VARCHAR(100) NOT NULL,
     dni VARCHAR(20) UNIQUE NOT NULL,
     email VARCHAR(150) NOT NULL,
+    especialidad VARCHAR(60),
+    telefono VARCHAR(16),
     estado estado_legajo DEFAULT 'Activo'
 );
 
@@ -51,9 +54,16 @@ CREATE TABLE alumnos (
     dni VARCHAR(20) UNIQUE NOT NULL,
     fecha_nacimiento DATE NOT NULL,
     curso_id UUID REFERENCES cursos(id),
+    domicilio VARCHAR(100),
+    telefono VARCHAR(16),
+    email VARCHAR(100),
     estado estado_legajo DEFAULT 'Activo',
     inscripto_ciclo_lectivo INTEGER DEFAULT 0 -- año del ciclo lectivo en que se inscribió (0 = nunca)
 );
+
+-- Domicilio, teléfono y email de alumnos, y legajo, especialidad y teléfono de profesores,
+-- se agregaron después. En una base existente, backend/db.js los suma al iniciar con
+-- ALTER TABLE ... ADD COLUMN IF NOT EXISTS y completa el legajo de los profesores que no lo tienen.
 
 -- Requerimiento 03: asignación de materias/cursos a profesores
 CREATE TABLE asignaciones (

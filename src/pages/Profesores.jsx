@@ -10,11 +10,12 @@ import Modal from '../components/Modal';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
 import {
-  limpiar, soloErrores, validarDni, validarEmail, validarNombrePersona,
-  validarPasswordNueva, validarRangoHorario
+  limpiar, soloErrores, validarDni, validarEmail, validarEspecialidad, validarNombrePersona,
+  validarPasswordNueva, validarRangoHorario, validarTelefono
 } from '../validaciones';
+import './Profesores.css';
 
-const PROFESOR_VACIO = { nombre: '', apellido: '', dni: '', email: '', password: '' };
+const PROFESOR_VACIO = { nombre: '', apellido: '', dni: '', email: '', password: '', especialidad: '', telefono: '' };
 const ASIGNACION_VACIA = { materia_id: '', curso_id: '', dia: '', hora_inicio: '', hora_fin: '' };
 
 export default function Profesores() {
@@ -117,7 +118,9 @@ function VistaAdministrador() {
       apellido: profesor.apellido,
       dni: profesor.dni,
       email: profesor.email,
-      password: ''
+      password: '',
+      especialidad: profesor.especialidad || '',
+      telefono: profesor.telefono || ''
     });
     setError('');
     setErrores({});
@@ -135,14 +138,18 @@ function VistaAdministrador() {
       nombre: limpiar(formData.nombre),
       apellido: limpiar(formData.apellido),
       dni: limpiar(formData.dni),
-      email: limpiar(formData.email)
+      email: limpiar(formData.email),
+      especialidad: limpiar(formData.especialidad),
+      telefono: limpiar(formData.telefono)
     };
     const encontrados = soloErrores({
       nombre: validarNombrePersona(datos.nombre, 'nombre'),
       apellido: validarNombrePersona(datos.apellido, 'apellido'),
       dni: validarDni(datos.dni),
       email: validarEmail(datos.email),
-      password: editingId ? null : validarPasswordNueva(datos.password)
+      password: editingId ? null : validarPasswordNueva(datos.password),
+      especialidad: validarEspecialidad(datos.especialidad),
+      telefono: validarTelefono(datos.telefono)
     });
     setErrores(encontrados);
     if (Object.keys(encontrados).length > 0) return;
@@ -296,6 +303,16 @@ function VistaAdministrador() {
             {errores.password && <small className="error">{errores.password}</small>}
           </label>
         )}
+        <label>
+          Especialidad
+          <input value={formData.especialidad} onChange={handleChange('especialidad')} />
+          {errores.especialidad && <small className="error">{errores.especialidad}</small>}
+        </label>
+        <label>
+          Teléfono
+          <input type="tel" inputMode="tel" value={formData.telefono} onChange={handleChange('telefono')} />
+          {errores.telefono && <small className="error">{errores.telefono}</small>}
+        </label>
       </div>
       {error && <p className="error">{error}</p>}
       <div className="form-actions">
@@ -324,7 +341,7 @@ function VistaAdministrador() {
       {message && <p className="success">{message}</p>}
 
       <div className="tabla-scroll">
-        <table className="data-table">
+        <table className="data-table tabla-profesores">
           <thead>
             <tr>
               <ThIcono icono={User}>Apellido y Nombre</ThIcono>
@@ -337,7 +354,12 @@ function VistaAdministrador() {
           <tbody>
             {profesores.map((p) => (
               <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
-                <td>{p.apellido}, {p.nombre}</td>
+                <td>
+                  {p.apellido}, {p.nombre}
+                  <span className="profesor-detalle">
+                    {p.especialidad ? `${p.legajo} · ${p.especialidad}` : p.legajo}
+                  </span>
+                </td>
                 <td>{p.dni}</td>
                 <td>{p.email}</td>
                 <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>

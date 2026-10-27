@@ -1,10 +1,11 @@
 import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
-import { obtenerCicloLectivo } from '../configuracion.js';
 import { COLUMNAS_ALUMNO, tieneDatosAsociados } from '../asociados.js';
+import { generarLegajo } from '../legajos.js';
 import {
-  limpiar, primerError, validarDni, validarFechaNacimiento, validarNombrePersona
+  limpiar, primerError, validarDni, validarDomicilio, validarEmail, validarFechaNacimiento,
+  validarNombrePersona, validarTelefono
 } from '../validaciones.js';
 
 const router = express.Router();
@@ -25,31 +26,24 @@ async function validarAlumno(db, body) {
     apellido: limpiar(body.apellido),
     dni: limpiar(body.dni),
     fecha_nacimiento: limpiar(body.fecha_nacimiento),
-    curso_id: body.curso_id || null
+    curso_id: body.curso_id || null,
+    domicilio: limpiar(body.domicilio),
+    telefono: limpiar(body.telefono),
+    email: limpiar(body.email)
   };
   let error = primerError(
     validarNombrePersona(datos.nombre, 'nombre'),
     validarNombrePersona(datos.apellido, 'apellido'),
     validarDni(datos.dni),
-    validarFechaNacimiento(datos.fecha_nacimiento)
+    validarFechaNacimiento(datos.fecha_nacimiento),
+    validarDomicilio(datos.domicilio),
+    validarTelefono(datos.telefono),
+    datos.email ? validarEmail(datos.email) : null
   );
   if (!error && datos.curso_id && !(await db.get('SELECT id FROM cursos WHERE id = ?', datos.curso_id))) {
     error = 'El curso seleccionado no existe';
   }
   return { datos, error };
-}
-
-async function generarLegajo(db) {
-  const anio = await obtenerCicloLectivo(db);
-  // Se toma el número más alto usado en el año (no la cantidad de alumnos), para
-  // que eliminar un alumno no haga repetir un legajo existente.
-  const prefijo = `${anio}-`;
-  const { ultimo } = await db.get(
-    `SELECT MAX(CAST(SUBSTRING(legajo FROM ${prefijo.length + 1}) AS INTEGER)) as ultimo FROM alumnos WHERE legajo LIKE ?`,
-    [`${prefijo}%`]
-  );
-  const secuencia = String((ultimo || 0) + 1).padStart(4, '0');
-  return `${prefijo}${secuencia}`;
 }
 
 // HU4 - Búsqueda por DNI, apellido o legajo (o listado completo sin filtro)
@@ -116,19 +110,19 @@ router.post('/', async (req, res) => {
   const db = await dbPromise;
   const { datos, error } = await validarAlumno(db, req.body);
   if (error) return res.status(400).json({ message: error });
-  const { nombre, apellido, dni, fecha_nacimiento, curso_id } = datos;
+  const { nombre, apellido, dni, fecha_nacimiento, curso_id, domicilio, telefono, email } = datos;
 
   const existente = await db.get('SELECT id FROM alumnos WHERE dni = ?', dni);
   if (existente) {
     return res.status(400).json({ message: 'Ya existe un alumno registrado con ese DNI' });
   }
 
-  const legajo = await generarLegajo(db);
+  const legajo = await generarLegajo(db, 'alumnos');
 
   const result = await db.run(
-    `INSERT INTO alumnos (legajo, nombre, apellido, dni, fecha_nacimiento, curso_id, estado)
-     VALUES (?, ?, ?, ?, ?, ?, 'Activo')`,
-    [legajo, nombre, apellido, dni, fecha_nacimiento, curso_id || null]
+    `INSERT INTO alumnos (legajo, nombre, apellido, dni, fecha_nacimiento, curso_id, domicilio, telefono, email, estado)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Activo')`,
+    [legajo, nombre, apellido, dni, fecha_nacimiento, curso_id || null, domicilio || null, telefono || null, email || null]
   );
 
   const nuevoAlumno = await db.get(
@@ -153,7 +147,7 @@ router.put('/:id', async (req, res) => {
 
   const { datos, error } = await validarAlumno(db, req.body);
   if (error) return res.status(400).json({ message: error });
-  const { nombre, apellido, dni, fecha_nacimiento, curso_id } = datos;
+  const { nombre, apellido, dni, fecha_nacimiento, curso_id, domicilio, telefono, email } = datos;
 
   const otroConMismoDni = await db.get('SELECT id FROM alumnos WHERE dni = ? AND id != ?', [dni, req.params.id]);
   if (otroConMismoDni) {
@@ -161,9 +155,10 @@ router.put('/:id', async (req, res) => {
   }
 
   await db.run(
-    `UPDATE alumnos SET nombre = ?, apellido = ?, dni = ?, fecha_nacimiento = ?, curso_id = ?
+    `UPDATE alumnos SET nombre = ?, apellido = ?, dni = ?, fecha_nacimiento = ?, curso_id = ?,
+       domicilio = ?, telefono = ?, email = ?
      WHERE id = ?`,
-    [nombre, apellido, dni, fecha_nacimiento, curso_id || null, req.params.id]
+    [nombre, apellido, dni, fecha_nacimiento, curso_id || null, domicilio || null, telefono || null, email || null, req.params.id]
   );
 
   const actualizado = await db.get(
