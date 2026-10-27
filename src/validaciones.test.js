@@ -4,6 +4,7 @@ import {
   MAX_ESPECIALIDAD,
   MAX_NOMBRE_CATALOGO,
   MIN_PASSWORD,
+  NIVELES,
   limpiar,
   soloErrores,
   validarNombrePersona,
@@ -18,6 +19,7 @@ import {
   validarTelefono,
   validarDomicilio,
   validarEspecialidad,
+  validarNivel,
 } from './validaciones.js'
 
 describe('limpiar', () => {
@@ -368,5 +370,33 @@ describe('validarEspecialidad', () => {
     expect(validarEspecialidad('a'.repeat(MAX_ESPECIALIDAD))).toBeNull()
     expect(validarEspecialidad('a'.repeat(MAX_ESPECIALIDAD + 1)))
       .toBe(`Usá como máximo ${MAX_ESPECIALIDAD} caracteres.`)
+  })
+})
+
+describe('validarNivel', () => {
+  const ERROR_NIVEL = 'Elegí Inicial, Primario o Secundario.'
+
+  it('los niveles posibles son Inicial, Primario y Secundario', () => {
+    expect(NIVELES).toEqual(['Inicial', 'Primario', 'Secundario'])
+  })
+
+  it('acepta cada uno de los tres niveles', () => {
+    expect(validarNivel('Inicial')).toBeNull()
+    expect(validarNivel('Primario')).toBeNull()
+    expect(validarNivel('Secundario')).toBeNull()
+  })
+
+  it('pide el nivel cuando está vacío', () => {
+    expect(validarNivel('')).toBe('Seleccioná el nivel.')
+    expect(validarNivel(undefined)).toBe('Seleccioná el nivel.')
+  })
+
+  it('rechaza un nivel que no está en la lista', () => {
+    expect(validarNivel('Terciario')).toBe(ERROR_NIVEL)
+  })
+
+  it('rechaza el nivel escrito con otras mayúsculas o con espacios', () => {
+    expect(validarNivel('primario')).toBe(ERROR_NIVEL)
+    expect(validarNivel(' Primario')).toBe(ERROR_NIVEL)
   })
 })

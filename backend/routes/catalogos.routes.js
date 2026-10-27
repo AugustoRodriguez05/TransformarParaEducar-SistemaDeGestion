@@ -1,7 +1,7 @@
 import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
-import { limpiar, validarNombreCatalogo } from '../validaciones.js';
+import { limpiar, primerError, validarNivel, validarNombreCatalogo } from '../validaciones.js';
 
 const router = express.Router();
 
@@ -9,7 +9,8 @@ router.use(authenticate);
 
 // Catálogos simples (cursos y materias): cualquier usuario autenticado los lee,
 // solo el administrador los modifica. No se puede borrar lo que está en uso.
-function registrarCatalogo({ ruta, tabla, etiqueta, usos }) {
+// conNivel: el catálogo guarda además el nivel educativo (solo cursos).
+function registrarCatalogo({ ruta, tabla, etiqueta, usos, conNivel = false }) {
   router.get(`/${ruta}`, async (req, res) => {
     const db = await dbPromise;
     res.json(await db.all(`SELECT * FROM ${tabla} ORDER BY nombre`));
@@ -17,20 +18,25 @@ function registrarCatalogo({ ruta, tabla, etiqueta, usos }) {
 
   router.post(`/${ruta}`, requireRole('administrador'), async (req, res) => {
     const nombre = limpiar(req.body.nombre);
-    const error = validarNombreCatalogo(nombre);
+    const nivel = limpiar(req.body.nivel);
+    const error = primerError(validarNombreCatalogo(nombre), conNivel ? validarNivel(nivel) : null);
     if (error) return res.status(400).json({ message: error });
 
     const db = await dbPromise;
     if (await db.get(`SELECT id FROM ${tabla} WHERE nombre = ?`, nombre)) {
       return res.status(409).json({ message: `Ya existe ${etiqueta} con ese nombre` });
     }
-    const result = await db.run(`INSERT INTO ${tabla} (nombre) VALUES (?)`, nombre);
+    const result = conNivel
+      ? await db.run(`INSERT INTO ${tabla} (nombre, nivel) VALUES (?, ?)`, [nombre, nivel])
+      : await db.run(`INSERT INTO ${tabla} (nombre) VALUES (?)`, nombre);
     res.status(201).json(await db.get(`SELECT * FROM ${tabla} WHERE id = ?`, result.lastID));
   });
 
   router.put(`/${ruta}/:id`, requireRole('administrador'), async (req, res) => {
     const nombre = limpiar(req.body.nombre);
-    const error = validarNombreCatalogo(nombre);
+    // Al editar, un curso cargado antes de que existiera el nivel puede seguir sin él.
+    const nivel = limpiar(req.body.nivel);
+    const error = primerError(validarNombreCatalogo(nombre), conNivel && nivel ? validarNivel(nivel) : null);
     if (error) return res.status(400).json({ message: error });
 
     const db = await dbPromise;
@@ -40,7 +46,11 @@ function registrarCatalogo({ ruta, tabla, etiqueta, usos }) {
     if (await db.get(`SELECT id FROM ${tabla} WHERE nombre = ? AND id != ?`, [nombre, req.params.id])) {
       return res.status(409).json({ message: `Ya existe ${etiqueta} con ese nombre` });
     }
-    await db.run(`UPDATE ${tabla} SET nombre = ? WHERE id = ?`, [nombre, req.params.id]);
+    if (conNivel && nivel) {
+      await db.run(`UPDATE ${tabla} SET nombre = ?, nivel = ? WHERE id = ?`, [nombre, nivel, req.params.id]);
+    } else {
+      await db.run(`UPDATE ${tabla} SET nombre = ? WHERE id = ?`, [nombre, req.params.id]);
+    }
     res.json(await db.get(`SELECT * FROM ${tabla} WHERE id = ?`, req.params.id));
   });
 
@@ -63,6 +73,7 @@ registrarCatalogo({
   ruta: 'cursos',
   tabla: 'cursos',
   etiqueta: 'un curso',
+  conNivel: true,
   usos: [
     'SELECT id FROM alumnos WHERE curso_id = ?',
     'SELECT id FROM asignaciones WHERE curso_id = ?'

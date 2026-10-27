@@ -59,7 +59,7 @@ export default function Configuracion() {
     <div>
       <TituloSeccion principal icono={Settings}>Configuración</TituloSeccion>
       <CicloLectivo />
-      <CatalogoEditor titulo="Cursos" ruta="cursos" icono={GraduationCap} />
+      <CatalogoEditor titulo="Cursos" ruta="cursos" icono={GraduationCap} conNivel />
       <CatalogoEditor titulo="Materias" ruta="materias" icono={BookOpen} />
       <DeportesEditor />
       <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" icono={Bus} />
