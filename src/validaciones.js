@@ -115,3 +115,12 @@ export function validarNivel(valor) {
   if (!NIVELES.includes(valor)) return `Elegí ${NIVELES.slice(0, -1).join(', ')} o ${NIVELES.at(-1)}.`;
   return null;
 }
+
+// Grupo de un deporte: si tiene nivel, solo pueden inscribirse alumnos de ese
+// nivel (el del curso del alumno). Sin nivel, el grupo es para todos los niveles.
+export function validarNivelDelGrupo(grupo, nivelAlumno) {
+  if (!grupo.nivel || grupo.nivel === nivelAlumno) return null;
+  return nivelAlumno
+    ? `Este grupo de ${grupo.nombre} es para el nivel ${grupo.nivel} y el alumno es de nivel ${nivelAlumno}.`
+    : `Este grupo de ${grupo.nombre} es para el nivel ${grupo.nivel} y el alumno no tiene un curso con nivel.`;
+}

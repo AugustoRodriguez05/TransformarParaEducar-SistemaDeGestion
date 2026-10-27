@@ -3,9 +3,11 @@ import { Pencil, Plus, Save, Trash2, Volleyball } from 'lucide-react';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
 import TituloSeccion from './TituloSeccion';
-import { limpiar, soloErrores, validarNombreCatalogo, validarRangoHorario } from '../validaciones';
+import { textoGrupo, TODOS_LOS_NIVELES } from '../deportes';
+import { limpiar, NIVELES, soloErrores, validarNombreCatalogo, validarRangoHorario } from '../validaciones';
 
-const DEPORTE_VACIO = { nombre: '', dia: '', hora_inicio: '', hora_fin: '', profesor_id: '' };
+// Cada deporte es un grupo; nivel vacío = todos los niveles.
+const DEPORTE_VACIO = { nombre: '', nivel: '', dia: '', hora_inicio: '', hora_fin: '', profesor_id: '' };
 
 export default function DeportesEditor() {
   const config = useConfig();
@@ -72,6 +74,7 @@ export default function DeportesEditor() {
     setEditandoId(d.id);
     setForm({
       nombre: d.nombre,
+      nivel: d.nivel || '',
       dia: d.dia,
       hora_inicio: d.hora_inicio,
       hora_fin: d.hora_fin,
@@ -97,6 +100,13 @@ export default function DeportesEditor() {
           Nombre
           <input value={form.nombre} onChange={handleChange('nombre')} required />
           {errores.nombre && <small className="error">{errores.nombre}</small>}
+        </label>
+        <label>
+          Nivel
+          <select value={form.nivel} onChange={handleChange('nivel')}>
+            <option value="">{TODOS_LOS_NIVELES}</option>
+            {NIVELES.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
         </label>
         <label>
           Día
@@ -131,7 +141,7 @@ export default function DeportesEditor() {
           {deportes.map((d) => (
             <li key={d.id}>
               <span>
-                {d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}
+                {textoGrupo(d)}
                 {d.profesor_id ? ` — ${d.profesor_apellido}, ${d.profesor_nombre}` : ''}
               </span>
               <span className="actions">

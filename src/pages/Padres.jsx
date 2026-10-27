@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowDown, GraduationCap, Link, Pencil, RotateCcw, Save, Trash2, User, UserPlus, UsersRound, X
+  ArrowDown, GraduationCap, Mail, Pencil, Plus, RotateCcw, Save, Search, Trash2, User, UserPlus, UsersRound, X
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import Modal from '../components/Modal';
@@ -8,8 +8,115 @@ import TituloSeccion from '../components/TituloSeccion';
 import {
   limpiar, soloErrores, validarEmail, validarNombrePersona, validarPasswordNueva
 } from '../validaciones';
+import './Padres.css';
 
 const PADRE_VACIO = { nombre: '', apellido: '', email: '', password: '' };
+
+const MIN_BUSQUEDA = 2;
+const MAX_RESULTADOS = 10;
+
+// Minúsculas y sin tildes, para que la búsqueda no los distinga.
+const normalizar = (texto) => texto.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+
+// Buscador para vincular un alumno: filtra en el navegador los alumnos ya cargados
+// por apellido, nombre, legajo o DNI. Con el teclado: flechas para moverse por los
+// resultados, Enter para elegir y Esc para cerrar.
+function BuscadorAlumno({ id, alumnos, onElegir, onCancelar }) {
+  const [texto, setTexto] = useState('');
+  const [activo, setActivo] = useState(0);
+  const [enviando, setEnviando] = useState(false);
+  const campo = useRef(null);
+
+  // Al abrir el buscador, el cursor queda en el campo de texto.
+  useEffect(() => {
+    campo.current?.focus();
+  }, []);
+
+  const buscando = texto.trim().length >= MIN_BUSQUEDA;
+  const palabras = normalizar(texto.trim()).split(/\s+/);
+  const resultados = buscando
+    ? alumnos
+      .filter((a) => {
+        const datos = normalizar(`${a.apellido} ${a.nombre} ${a.legajo} ${a.dni}`);
+        return palabras.every((p) => datos.includes(p));
+      })
+      .slice(0, MAX_RESULTADOS)
+    : [];
+  const listaId = `buscador-alumno-${id}`;
+  const opcionId = (i) => `${listaId}-${i}`;
+
+  // Si el vínculo falla, el buscador queda abierto para volver a intentar.
+  const elegir = async (alumno) => {
+    if (enviando) return;
+    setEnviando(true);
+    if (!(await onElegir(alumno))) setEnviando(false);
+  };
+
+  const manejarTeclas = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancelar();
+    } else if (e.key === 'ArrowDown' && resultados.length > 0) {
+      e.preventDefault();
+      setActivo((i) => (i + 1) % resultados.length);
+    } else if (e.key === 'ArrowUp' && resultados.length > 0) {
+      e.preventDefault();
+      setActivo((i) => (i - 1 + resultados.length) % resultados.length);
+    } else if (e.key === 'Enter' && resultados[activo]) {
+      e.preventDefault();
+      void elegir(resultados[activo]);
+    }
+  };
+
+  return (
+    <div className="padre-buscador">
+      <div className="padre-buscador-fila">
+        <span className="padre-buscador-campo">
+          <Search size={18} aria-hidden="true" />
+          <input
+            ref={campo}
+            role="combobox"
+            aria-label="Buscar alumno"
+            aria-autocomplete="list"
+            aria-expanded={buscando && resultados.length > 0}
+            aria-controls={listaId}
+            aria-activedescendant={resultados[activo] ? opcionId(activo) : undefined}
+            placeholder="Buscar por apellido, nombre, legajo o DNI"
+            value={texto}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              setActivo(0);
+            }}
+            onKeyDown={manejarTeclas}
+          />
+        </span>
+        <button type="button" className="secondary" onClick={onCancelar}>Cancelar</button>
+      </div>
+
+      {buscando && (resultados.length === 0 ? <p className="padre-buscador-vacio">Sin resultados</p> : (
+        <ul className="padre-buscador-resultados" id={listaId} role="listbox" aria-label="Alumnos encontrados">
+          {resultados.map((a, i) => (
+            <li
+              key={a.id}
+              id={opcionId(i)}
+              role="option"
+              aria-selected={i === activo}
+              className={i === activo ? 'activo' : ''}
+              // El foco queda en el campo de texto para seguir usando el teclado
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setActivo(i)}
+              onClick={() => elegir(a)}
+            >
+              <span className="padre-buscador-nombre">{a.apellido}, {a.nombre}</span>
+              {' '}<span className="padre-buscador-detalle">· {a.legajo}</span>
+              {a.curso_nombre && <>{' '}<span className="padre-buscador-detalle">· {a.curso_nombre}</span></>}
+            </li>
+          ))}
+        </ul>
+      ))}
+    </div>
+  );
+}
 
 export default function Padres() {
   const [padres, setPadres] = useState([]);
@@ -17,7 +124,8 @@ export default function Padres() {
   const [formVisible, setFormVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(PADRE_VACIO);
-  const [alumnoAVincular, setAlumnoAVincular] = useState({});
+  // Padres con el buscador de vincular abierto (por id)
+  const [vinculando, setVinculando] = useState({});
   const [error, setError] = useState('');
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState('');
@@ -107,13 +215,13 @@ export default function Padres() {
     }
   };
 
-  const vincular = async (padre) => {
-    const alumnoId = alumnoAVincular[padre.id];
-    if (!alumnoId) return;
-    if (await ejecutar(`/api/padres/${padre.id}/alumnos`, 'POST', { alumno_id: alumnoId })) {
-      setAlumnoAVincular({ ...alumnoAVincular, [padre.id]: '' });
-    }
+  const vincular = async (padre, alumno) => {
+    const ok = await ejecutar(`/api/padres/${padre.id}/alumnos`, 'POST', { alumno_id: alumno.id });
+    if (ok) cerrarVincular(padre);
+    return ok;
   };
+
+  const cerrarVincular = (padre) => setVinculando((v) => ({ ...v, [padre.id]: false }));
 
   // Campos y botones del formulario. Los usan el alta (arriba de la lista)
   // y la edición (en una ventana emergente).
@@ -152,7 +260,7 @@ export default function Padres() {
   );
 
   return (
-    <div>
+    <div className="padres">
       {formVisible && editingId && (
         <Modal
           icono={Pencil}
@@ -186,17 +294,19 @@ export default function Padres() {
       {mensaje && <p className="success">{mensaje}</p>}
 
       {padres.length === 0 ? <p>No hay padres o tutores cargados.</p> : padres.map((p) => {
-        const disponibles = alumnos.filter((a) => !p.hijos.some((h) => h.id === a.id));
+        const disponibles = alumnos.filter((a) => a.estado === 'Activo' && !p.hijos.some((h) => h.id === a.id));
         return (
           <div className="card padre-card" key={p.id}>
             <div className="padre-encabezado">
               <div className="padre-identidad">
                 <span className="padre-avatar"><User size={24} aria-hidden="true" /></span>
-                <h3>
-                  <span className="padre-nombre">{p.apellido}, {p.nombre}</span>{' '}
-                  <small className="padre-email">{p.email}</small>{' '}
-                  <span className={`badge ${p.activo ? 'activo' : 'inactivo'}`}>{p.activo ? 'Activo' : 'Inactivo'}</span>
-                </h3>
+                <div className="padre-datos">
+                  <h3>
+                    <span className="padre-nombre">{p.apellido}, {p.nombre}</span>
+                    <span className={`badge ${p.activo ? 'activo' : 'inactivo'}`}>{p.activo ? 'Activo' : 'Inactivo'}</span>
+                  </h3>
+                  <span className="padre-email"><Mail size={16} aria-hidden="true" />{p.email}</span>
+                </div>
               </div>
               <div className="actions">
                 <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
@@ -209,13 +319,18 @@ export default function Padres() {
               </div>
             </div>
 
+            <h4 className="padre-subtitulo">
+              <UsersRound size={18} aria-hidden="true" />Alumnos vinculados ({p.hijos.length})
+            </h4>
+
             {p.hijos.length === 0 ? <p>Sin alumnos vinculados.</p> : (
               <ul className="padre-hijos">
                 {p.hijos.map((h) => (
                   <li key={h.id}>
                     <span className="padre-hijo">
                       <span className="padre-hijo-icono"><GraduationCap size={16} aria-hidden="true" /></span>
-                      <span>{h.apellido}, {h.nombre} — legajo {h.legajo}</span>
+                      <span className="padre-hijo-nombre">{h.apellido}, {h.nombre}</span>
+                      <span className="padre-hijo-legajo">Legajo {h.legajo}</span>
                     </span>
                     <button className="btn-accion btn-cancelar" onClick={() => ejecutar(`/api/padres/${p.id}/alumnos/${h.id}`, 'DELETE')}><X size={16} aria-hidden="true" />Quitar</button>
                   </li>
@@ -223,22 +338,18 @@ export default function Padres() {
               </ul>
             )}
 
-            <div className="padre-vincular">
-              <span className="padre-select">
-                <GraduationCap size={18} aria-hidden="true" />
-                <select
-                  aria-label="Vincular alumno"
-                  value={alumnoAVincular[p.id] || ''}
-                  onChange={(e) => setAlumnoAVincular({ ...alumnoAVincular, [p.id]: e.target.value })}
-                >
-                  <option value="">Vincular alumno…</option>
-                  {disponibles.map((a) => (
-                    <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} ({a.legajo})</option>
-                  ))}
-                </select>
-              </span>
-              <button disabled={!alumnoAVincular[p.id]} onClick={() => vincular(p)}><Link size={18} aria-hidden="true" />Vincular</button>
-            </div>
+            {!vinculando[p.id] ? (
+              <button className="padre-vincular-abrir" onClick={() => setVinculando({ ...vinculando, [p.id]: true })}>
+                <Plus size={18} aria-hidden="true" />Vincular alumno
+              </button>
+            ) : (
+              <BuscadorAlumno
+                id={p.id}
+                alumnos={disponibles}
+                onElegir={(alumno) => vincular(p, alumno)}
+                onCancelar={() => cerrarVincular(p)}
+              />
+            )}
           </div>
         );
       })}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ArrowDown, Bus, Plus, Utensils, Volleyball } from 'lucide-react';
 import { apiFetch } from '../api';
+import { textoGrupo } from '../deportes';
+import { validarNivelDelGrupo } from '../validaciones';
 import TituloSeccion from './TituloSeccion';
 
 export default function ServiciosAlumno({ alumnoId }) {
@@ -38,6 +40,9 @@ export default function ServiciosAlumno({ alumnoId }) {
     return error ? <p className="error">{error}</p> : <p>Cargando servicios…</p>;
   }
 
+  // Solo los grupos del nivel del alumno (o para todos los niveles).
+  const gruposDelNivel = deportes.filter((d) => !validarNivelDelGrupo(d, servicios.nivel));
+
   return (
     <div className="servicios">
       <TituloSeccion nivel="h4" icono={Volleyball}>Actividades deportivas (máximo 2)</TituloSeccion>
@@ -45,7 +50,7 @@ export default function ServiciosAlumno({ alumnoId }) {
       <ul className="servicios-lista">
         {servicios.deportes.map((d) => (
           <li key={d.id}>
-            <span>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</span>
+            <span>{textoGrupo(d)}</span>
             <button className="btn-accion btn-baja" onClick={() => ejecutar(`/deportes/${d.id}`, 'DELETE')}><ArrowDown size={16} aria-hidden="true" />Dar de baja</button>
           </li>
         ))}
@@ -53,8 +58,8 @@ export default function ServiciosAlumno({ alumnoId }) {
       <div className="servicios-form">
         <select value={deporteSel} onChange={(e) => setDeporteSel(e.target.value)}>
           <option value="">Elegir deporte…</option>
-          {deportes.map((d) => (
-            <option key={d.id} value={d.id}>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</option>
+          {gruposDelNivel.map((d) => (
+            <option key={d.id} value={d.id}>{textoGrupo(d)}</option>
           ))}
         </select>
         <button

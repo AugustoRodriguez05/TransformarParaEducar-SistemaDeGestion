@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Download, FileBarChart, Table } from 'lucide-react';
 import { apiFetch, apiDownload } from '../api';
 import TituloSeccion from '../components/TituloSeccion';
+import { textoGrupo } from '../deportes';
 import { NIVELES } from '../validaciones';
 
 // Cada reporte: su ruta en /api/reportes y sus filtros, [parámetro, obligatorio].
@@ -28,7 +29,7 @@ const FILTROS = {
   recorrido_id: { etiqueta: 'Recorrido' }
 };
 
-const aOpciones = (lista) => lista.map((x) => ({ valor: x.id, texto: x.nombre }));
+const aOpciones = (lista, texto = (x) => x.nombre) => lista.map((x) => ({ valor: x.id, texto: texto(x) }));
 
 export default function Reportes() {
   const [tipo, setTipo] = useState('curso');
@@ -40,12 +41,14 @@ export default function Reportes() {
 
   useEffect(() => {
     let cancelado = false;
-    const cargar = (campo, path) => apiFetch(path)
-      .then((lista) => !cancelado && setOpciones((o) => ({ ...o, [campo]: aOpciones(lista) })));
-    cargar('curso_id', '/api/cursos');
-    cargar('materia_id', '/api/materias');
-    cargar('deporte_id', '/api/servicios/deportes');
-    cargar('recorrido_id', '/api/servicios/recorridos');
+    const cargar = (campo, path, texto) => apiFetch(path)
+      .then((lista) => !cancelado && setOpciones((o) => ({ ...o, [campo]: aOpciones(lista, texto) })))
+      .catch((err) => !cancelado && setError(err.message));
+    void cargar('curso_id', '/api/cursos');
+    void cargar('materia_id', '/api/materias');
+    // Cada deporte es un grupo: la opción muestra nombre, nivel y horario.
+    void cargar('deporte_id', '/api/servicios/deportes', textoGrupo);
+    void cargar('recorrido_id', '/api/servicios/recorridos');
     return () => { cancelado = true; };
   }, []);
 

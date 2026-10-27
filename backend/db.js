@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { DIAS } from './constantes.js';
+import { DIAS, NIVELES } from './constantes.js';
 import { generarLegajo } from './legajos.js';
 
 const { Pool } = pg;
@@ -109,6 +109,7 @@ export default db;
 // ---------- Inicialización del esquema ----------
 
 const SQL_DIAS = DIAS.map((d) => `'${d}'`).join(',');
+const SQL_NIVELES = NIVELES.map((n) => `'${n}'`).join(',');
 
 export async function initDb() {
   await db.exec(`
@@ -174,7 +175,7 @@ export async function initDb() {
 
     CREATE TABLE IF NOT EXISTS deportes (
       id SERIAL PRIMARY KEY,
-      nombre TEXT UNIQUE NOT NULL,
+      nombre TEXT NOT NULL,
       dia TEXT NOT NULL CHECK (dia IN (${SQL_DIAS})),
       hora_inicio TEXT NOT NULL,
       hora_fin TEXT NOT NULL,
@@ -342,6 +343,17 @@ export async function initDb() {
     ALTER TABLE profesores ADD COLUMN IF NOT EXISTS legajo TEXT UNIQUE;
     ALTER TABLE profesores ADD COLUMN IF NOT EXISTS especialidad TEXT;
     ALTER TABLE profesores ADD COLUMN IF NOT EXISTS telefono TEXT;
+    ALTER TABLE deportes ADD COLUMN IF NOT EXISTS nivel TEXT CHECK (nivel IN (${SQL_NIVELES}));
+  `);
+
+  // Grupos de deportes: el mismo deporte puede tener varios grupos según nivel y
+  // horario. No se repite la combinación nombre + nivel + día + hora de inicio
+  // (nivel vacío = todos los niveles, y cuenta como un valor más). Primero se crea
+  // el índice nuevo y después se quita el nombre único, en la misma transacción.
+  await db.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS deportes_grupo_unico
+      ON deportes (nombre, COALESCE(nivel, ''), dia, hora_inicio);
+    ALTER TABLE deportes DROP CONSTRAINT IF EXISTS deportes_nombre_key;
   `);
 
   // Índices (IF NOT EXISTS evita errores en reinicios)
