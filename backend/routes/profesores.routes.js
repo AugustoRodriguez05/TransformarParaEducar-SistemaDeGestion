@@ -33,7 +33,7 @@ router.get('/:id/asignaciones', requireRole('administrador', 'profesor'), async 
   }
 
   const asignaciones = await db.all(
-    `SELECT asig.*, m.nombre as materia_nombre, c.nombre as curso_nombre
+    `SELECT asig.*, m.nombre as materia_nombre, c.nombre as curso_nombre, c.nivel as curso_nivel
      FROM asignaciones asig
      JOIN materias m ON m.id = asig.materia_id
      JOIN cursos c ON c.id = asig.curso_id
@@ -197,7 +197,7 @@ function solapan(inicioA, finA, inicioB, finB) {
   return inicioA < finB && inicioB < finA;
 }
 
-const SELECT_ASIGNACION = `SELECT asig.*, m.nombre as materia_nombre, c.nombre as curso_nombre
+const SELECT_ASIGNACION = `SELECT asig.*, m.nombre as materia_nombre, c.nombre as curso_nombre, c.nivel as curso_nivel
      FROM asignaciones asig
      JOIN materias m ON m.id = asig.materia_id
      JOIN cursos c ON c.id = asig.curso_id

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowDown, BadgeCheck, BookOpen, Briefcase, Calendar, Clock, Eye, FileText, GraduationCap, Hash,
-  IdCard, Pencil, Plus, RotateCcw, Save, Settings, Trash2, User, UserPlus
+  IdCard, Layers, Pencil, Plus, RotateCcw, Save, Settings, Trash2, User, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
@@ -426,6 +426,7 @@ function VistaAdministrador() {
                   <tr>
                     <ThIcono icono={BookOpen}>Materia</ThIcono>
                     <ThIcono icono={GraduationCap}>Curso</ThIcono>
+                    <ThIcono icono={Layers}>Nivel</ThIcono>
                     <ThIcono icono={Calendar}>Día</ThIcono>
                     <ThIcono icono={Clock}>Horario</ThIcono>
                     <th></th>
@@ -436,6 +437,7 @@ function VistaAdministrador() {
                     <tr key={a.id}>
                       <td>{a.materia_nombre}</td>
                       <td><span className="badge curso">{a.curso_nombre}</span></td>
+                      <td>{a.curso_nivel || '—'}</td>
                       <td>{a.dia}</td>
                       <td>{a.hora_inicio} - {a.hora_fin}</td>
                       <td>

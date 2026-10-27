@@ -14,6 +14,7 @@ export const MAX_MOTIVO = 200;
 export const MIN_PASSWORD = 6;
 export const MAX_DOMICILIO = 100;
 export const MAX_ESPECIALIDAD = 60;
+export const NIVELES = ['Inicial', 'Primario', 'Secundario'];
 
 export function limpiar(valor) {
   return valor === undefined || valor === null ? '' : String(valor).trim();
@@ -105,5 +106,12 @@ export function validarDomicilio(valor) {
 
 export function validarEspecialidad(valor) {
   if (valor.length > MAX_ESPECIALIDAD) return `Usá como máximo ${MAX_ESPECIALIDAD} caracteres.`;
+  return null;
+}
+
+// Nivel educativo de un curso.
+export function validarNivel(valor) {
+  if (!valor) return 'Seleccioná el nivel.';
+  if (!NIVELES.includes(valor)) return `Elegí ${NIVELES.slice(0, -1).join(', ')} o ${NIVELES.at(-1)}.`;
   return null;
 }

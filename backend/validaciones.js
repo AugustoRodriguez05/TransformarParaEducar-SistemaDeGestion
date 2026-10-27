@@ -3,6 +3,8 @@
 // el dato es válido. Los valores se validan ya recortados con limpiar().
 // Los mensajes nombran el campo porque en la respuesta no se ven junto a él.
 
+import { NIVELES } from './constantes.js';
+
 const NOMBRE_PERSONA = /^\p{L}[\p{L} '’]*$/u;
 const FORMATO_DNI = /^\d{7,8}$/;
 const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -110,5 +112,12 @@ export function validarDomicilio(valor) {
 
 export function validarEspecialidad(valor) {
   if (valor.length > MAX_ESPECIALIDAD) return `Especialidad: usá como máximo ${MAX_ESPECIALIDAD} caracteres.`;
+  return null;
+}
+
+// Nivel educativo de un curso.
+export function validarNivel(valor) {
+  if (!valor) return 'Seleccioná el nivel.';
+  if (!NIVELES.includes(valor)) return `Nivel: elegí ${NIVELES.slice(0, -1).join(', ')} o ${NIVELES.at(-1)}.`;
   return null;
 }
