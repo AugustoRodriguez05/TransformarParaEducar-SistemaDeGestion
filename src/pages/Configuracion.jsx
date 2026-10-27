@@ -6,6 +6,7 @@ import CatalogoEditor from '../components/CatalogoEditor';
 import DeportesEditor from '../components/DeportesEditor';
 import TituloSeccion from '../components/TituloSeccion';
 import UsuariosEditor from '../components/UsuariosEditor';
+import './Configuracion.css';
 
 function CicloLectivo() {
   const config = useConfig();
@@ -57,13 +58,15 @@ function CicloLectivo() {
 
 export default function Configuracion() {
   return (
-    <div>
+    <div className="configuracion">
       <TituloSeccion principal icono={Settings}>Configuración</TituloSeccion>
       <CicloLectivo />
-      <CatalogoEditor titulo="Cursos" ruta="cursos" icono={GraduationCap} conNivel />
-      <CatalogoEditor titulo="Materias" ruta="materias" icono={BookOpen} />
-      <DeportesEditor />
-      <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" icono={Bus} />
+      <div className="configuracion-grilla">
+        <CatalogoEditor titulo="Cursos" ruta="cursos" icono={GraduationCap} conNivel />
+        <CatalogoEditor titulo="Materias" ruta="materias" icono={BookOpen} />
+        <DeportesEditor />
+        <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" icono={Bus} />
+      </div>
       <UsuariosEditor />
     </div>
   );
