@@ -5,12 +5,13 @@ import { useConfig } from '../useConfig';
 import TituloSeccion from './TituloSeccion';
 import { limpiar, soloErrores, validarNombreCatalogo, validarRangoHorario } from '../validaciones';
 
-const DEPORTE_VACIO = { nombre: '', dia: '', hora_inicio: '', hora_fin: '' };
+const DEPORTE_VACIO = { nombre: '', dia: '', hora_inicio: '', hora_fin: '', profesor_id: '' };
 
 export default function DeportesEditor() {
   const config = useConfig();
   const dias = config ? config.dias : [];
   const [deportes, setDeportes] = useState([]);
+  const [profesores, setProfesores] = useState([]);
   const [form, setForm] = useState(DEPORTE_VACIO);
   const [editandoId, setEditandoId] = useState(null);
   const [error, setError] = useState('');
@@ -24,6 +25,15 @@ export default function DeportesEditor() {
       .catch((err) => !cancelado && setError(err.message));
     return () => { cancelado = true; };
   }, [version]);
+
+  // Solo un profesor activo puede quedar como responsable de un deporte.
+  useEffect(() => {
+    let cancelado = false;
+    apiFetch('/api/profesores')
+      .then((data) => !cancelado && setProfesores(data.filter((p) => p.estado === 'Activo')))
+      .catch((err) => !cancelado && setError(err.message));
+    return () => { cancelado = true; };
+  }, []);
 
   const handleChange = (campo) => (e) => setForm({ ...form, [campo]: e.target.value });
 
@@ -60,7 +70,13 @@ export default function DeportesEditor() {
 
   const editar = (d) => {
     setEditandoId(d.id);
-    setForm({ nombre: d.nombre, dia: d.dia, hora_inicio: d.hora_inicio, hora_fin: d.hora_fin });
+    setForm({
+      nombre: d.nombre,
+      dia: d.dia,
+      hora_inicio: d.hora_inicio,
+      hora_fin: d.hora_fin,
+      profesor_id: d.profesor_id ? String(d.profesor_id) : ''
+    });
     setError('');
     setErrores({});
   };
@@ -95,6 +111,13 @@ export default function DeportesEditor() {
           <input type="time" value={form.hora_fin} onChange={handleChange('hora_fin')} required />
           {errores.hora_fin && <small className="error">{errores.hora_fin}</small>}
         </label>
+        <label>
+          Profesor responsable
+          <select value={form.profesor_id} onChange={handleChange('profesor_id')} required>
+            <option value="">Seleccionar…</option>
+            {profesores.map((p) => <option key={p.id} value={p.id}>{p.apellido}, {p.nombre}</option>)}
+          </select>
+        </label>
         <div className="form-actions">
           <button type="submit">{editandoId ? <><Save size={18} aria-hidden="true" />Guardar cambios</> : <><Plus size={18} aria-hidden="true" />Agregar</>}</button>
           {editandoId && <button type="button" className="secondary" onClick={cancelarEdicion}>Cancelar</button>}
@@ -107,7 +130,10 @@ export default function DeportesEditor() {
         <ul className="servicios-lista lista-catalogo">
           {deportes.map((d) => (
             <li key={d.id}>
-              <span>{d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}</span>
+              <span>
+                {d.nombre} — {d.dia} {d.hora_inicio} a {d.hora_fin}
+                {d.profesor_id ? ` — ${d.profesor_apellido}, ${d.profesor_nombre}` : ''}
+              </span>
               <span className="actions">
                 <button className="btn-accion btn-editar" onClick={() => editar(d)}><Pencil size={16} aria-hidden="true" />Editar</button>
                 <button className="btn-accion btn-eliminar" onClick={() => ejecutar(`/api/servicios/deportes/${d.id}`, 'DELETE')}><Trash2 size={16} aria-hidden="true" />Eliminar</button>
