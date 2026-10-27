@@ -42,7 +42,8 @@ export default function Reportes() {
   useEffect(() => {
     let cancelado = false;
     const cargar = (campo, path, texto) => apiFetch(path)
-      .then((lista) => !cancelado && setOpciones((o) => ({ ...o, [campo]: aOpciones(lista, texto) })));
+      .then((lista) => !cancelado && setOpciones((o) => ({ ...o, [campo]: aOpciones(lista, texto) })))
+      .catch((err) => !cancelado && setError(err.message));
     cargar('curso_id', '/api/cursos');
     cargar('materia_id', '/api/materias');
     // Cada deporte es un grupo: la opción muestra nombre, nivel y horario.

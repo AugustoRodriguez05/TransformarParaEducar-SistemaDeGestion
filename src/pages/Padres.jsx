@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowDown, GraduationCap, Mail, Pencil, Plus, RotateCcw, Save, Search, Trash2, User, UserPlus, UsersRound, X
 } from 'lucide-react';
@@ -25,6 +25,12 @@ function BuscadorAlumno({ id, alumnos, onElegir, onCancelar }) {
   const [texto, setTexto] = useState('');
   const [activo, setActivo] = useState(0);
   const [enviando, setEnviando] = useState(false);
+  const campo = useRef(null);
+
+  // Al abrir el buscador, el cursor queda en el campo de texto.
+  useEffect(() => {
+    campo.current?.focus();
+  }, []);
 
   const buscando = texto.trim().length >= MIN_BUSQUEDA;
   const palabras = normalizar(texto.trim()).split(/\s+/);
@@ -58,7 +64,7 @@ function BuscadorAlumno({ id, alumnos, onElegir, onCancelar }) {
       setActivo((i) => (i - 1 + resultados.length) % resultados.length);
     } else if (e.key === 'Enter' && resultados[activo]) {
       e.preventDefault();
-      elegir(resultados[activo]);
+      void elegir(resultados[activo]);
     }
   };
 
@@ -68,7 +74,7 @@ function BuscadorAlumno({ id, alumnos, onElegir, onCancelar }) {
         <span className="padre-buscador-campo">
           <Search size={18} aria-hidden="true" />
           <input
-            autoFocus
+            ref={campo}
             role="combobox"
             aria-label="Buscar alumno"
             aria-autocomplete="list"
