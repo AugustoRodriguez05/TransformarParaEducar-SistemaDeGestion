@@ -78,13 +78,66 @@
   color: var(--verde);
 }
 
-/* Selector abierto: ocupa el mismo ancho que el botón */
-.padres .padre-vincular {
-  flex-wrap: wrap;
-  max-width: none;
+/* Buscador abierto: ocupa el mismo ancho que el botón */
+.padres .padre-buscador-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.padres .padre-select { min-width: 220px; }
+.padres .padre-buscador-campo {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.padres .padre-buscador-campo svg {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.padres .padre-buscador-campo input {
+  padding-left: 40px;
+  text-overflow: ellipsis;
+}
+
+.padres .padre-buscador-resultados {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: var(--shadow-md);
+}
+
+.padres .padre-buscador-resultados li {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.padres .padre-buscador-resultados li.activo { background: #ecfdf5; }
+
+.padres .padre-buscador-nombre { font-weight: 700; }
+
+/* Legajo y curso: si no entran en el renglón, bajan enteros */
+.padres .padre-buscador-detalle {
+  display: inline-block;
+  max-width: 100%;
+  color: var(--muted);
+}
+
+.padres .padre-buscador-vacio {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  color: var(--muted);
+}
 
 /* Celular */
 @media (max-width: 768px) {
@@ -131,7 +184,16 @@
 
   .padres .padre-hijos li > button { margin-left: 42px; }
 
-  .padres .padre-select { min-width: 100%; }
+  /* Buscador: el campo a todo el ancho y "Cancelar" debajo */
+  .padres .padre-buscador-fila { flex-wrap: wrap; }
 
-  .padres .padre-vincular > button { flex: 1; }
+  .padres .padre-buscador-campo { flex: 1 1 100%; }
+
+  .padres .padre-buscador-campo svg { left: 10px; }
+
+  .padres .padre-buscador-campo input { padding: 10px 10px 10px 36px; }
+
+  .padres .padre-buscador-campo input::placeholder { font-size: 0.8rem; }
+
+  .padres .padre-buscador-fila > button { flex: 1; }
 }
