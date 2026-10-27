@@ -40,7 +40,7 @@ export default function UsuariosEditor() {
       {error && <p className="error">{error}</p>}
 
       <div className="tabla-scroll">
-        <table className="data-table">
+        <table className="data-table tabla-tarjetas">
           <thead>
             <tr>
               <ThIcono icono={User}>Apellido y Nombre</ThIcono>
@@ -53,10 +53,10 @@ export default function UsuariosEditor() {
           <tbody>
             {usuarios.map((u) => (
               <tr key={u.id} className={u.activo ? '' : 'row-inactivo'}>
-                <td>{u.apellido}, {u.nombre}</td>
-                <td>{u.email}</td>
-                <td><span className="badge curso">{ETIQUETA_ROL[u.rol] || u.rol}</span></td>
-                <td><span className={`badge ${u.activo ? 'activo' : 'inactivo'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span></td>
+                <td data-label="Apellido y Nombre">{u.apellido}, {u.nombre}</td>
+                <td data-label="Email">{u.email}</td>
+                <td data-label="Rol"><span className="badge curso">{ETIQUETA_ROL[u.rol] || u.rol}</span></td>
+                <td data-label="Estado"><span className={`badge ${u.activo ? 'activo' : 'inactivo'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span></td>
                 <td>
                   <div className="actions">
                     <button className={u.activo ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(u)}>

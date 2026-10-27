@@ -289,7 +289,7 @@ export default function Alumnos() {
 
       {alumnos.length > 0 && (
         <div className="tabla-scroll">
-          <table className="data-table">
+          <table className="data-table tabla-tarjetas">
             <thead>
               <tr>
                 <ThIcono icono={Hash}>Legajo</ThIcono>
@@ -303,13 +303,13 @@ export default function Alumnos() {
             <tbody>
               {alumnos.map((a) => (
                 <tr key={a.id} className={a.estado === 'Inactivo' ? 'row-inactivo' : ''}>
-                  <td>{a.legajo}</td>
-                  <td>
+                  <td data-label="Legajo">{a.legajo}</td>
+                  <td data-label="Apellido y Nombre">
                     <button type="button" className="btn-texto" onClick={() => abrirFicha(a)}>{a.apellido}, {a.nombre}</button>
                   </td>
-                  <td>{a.dni}</td>
-                  <td>{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
-                  <td><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
+                  <td data-label="DNI">{a.dni}</td>
+                  <td data-label="Curso">{a.curso_nombre ? <span className="badge curso">{a.curso_nombre}</span> : '—'}</td>
+                  <td data-label="Estado"><span className={`badge ${a.estado.toLowerCase()}`}>{a.estado}</span></td>
                   <td>
                     <div className="actions">
                       <button

@@ -924,4 +924,71 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
     flex-wrap: wrap;
     padding-top: 16px;
   }
+
+  /* ---------- Tablas como tarjetas (Alumnos, Profesores y Usuarios) ----------
+     Cada fila es una tarjeta; la etiqueta de cada dato sale de su data-label. */
+  .tabla-scroll:has(> .tabla-tarjetas) {
+    overflow-x: visible;
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .tabla-tarjetas,
+  .tabla-tarjetas tbody,
+  .tabla-tarjetas tr,
+  .tabla-tarjetas td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabla-tarjetas {
+    background: none;
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+  }
+
+  .tabla-tarjetas thead { display: none; }
+
+  .tabla-tarjetas tbody tr,
+  .tabla-tarjetas tbody tr:nth-child(even),
+  .tabla-tarjetas tbody tr:hover {
+    margin-bottom: 12px;
+    padding: 4px 16px 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .tabla-tarjetas tbody tr.row-inactivo { background: #f8fafc; }
+
+  .tabla-tarjetas td {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    overflow-wrap: anywhere;
+  }
+
+  .tabla-tarjetas td::before {
+    content: attr(data-label);
+    flex: none;
+    width: 38%;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  /* Acciones: sin etiqueta, abajo de todo y bajando de renglón si no entran */
+  .tabla-tarjetas td:not([data-label]) {
+    display: block;
+    padding-top: 12px;
+    border-bottom: none;
+  }
+
+  .tabla-tarjetas td:not([data-label])::before { content: none; }
+
+  .tabla-tarjetas .actions { flex-wrap: wrap; }
 }
