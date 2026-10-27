@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  BookUser, Bus, Cake, CalendarDays, GraduationCap, IdCard, Settings, User, Users, Utensils, Volleyball
+  BookUser, Bus, Cake, CalendarDays, GraduationCap, House, IdCard, Mail, Phone, Settings, User, Users,
+  Utensils, Volleyball
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import { formatearFecha } from '../fecha';
@@ -59,6 +60,9 @@ export default function FichaAlumno({ alumno }) {
         <Dato icono={GraduationCap} titulo="Curso">
           {alumno.curso_nombre ? <span className="badge curso">{alumno.curso_nombre}</span> : '—'}
         </Dato>
+        <Dato icono={House} titulo="Domicilio">{alumno.domicilio || '—'}</Dato>
+        <Dato icono={Phone} titulo="Teléfono">{alumno.telefono || '—'}</Dato>
+        <Dato icono={Mail} titulo="Email">{alumno.email || '—'}</Dato>
       </dl>
 
       {error && <p className="error">{error}</p>}

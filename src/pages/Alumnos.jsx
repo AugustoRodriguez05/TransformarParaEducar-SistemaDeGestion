@@ -10,10 +10,13 @@ import ServiciosAlumno from '../components/ServiciosAlumno';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
 import {
-  limpiar, soloErrores, validarDni, validarFechaNacimiento, validarNombrePersona
+  limpiar, soloErrores, validarDni, validarDomicilio, validarEmail, validarFechaNacimiento,
+  validarNombrePersona, validarTelefono
 } from '../validaciones';
 
-const ALUMNO_VACIO = { nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '' };
+const ALUMNO_VACIO = {
+  nombre: '', apellido: '', dni: '', fecha_nacimiento: '', curso_id: '', domicilio: '', telefono: '', email: ''
+};
 
 export default function Alumnos() {
   const [query, setQuery] = useState('');
@@ -73,7 +76,10 @@ export default function Alumnos() {
       apellido: alumno.apellido,
       dni: alumno.dni,
       fecha_nacimiento: alumno.fecha_nacimiento,
-      curso_id: alumno.curso_id || ''
+      curso_id: alumno.curso_id || '',
+      domicilio: alumno.domicilio || '',
+      telefono: alumno.telefono || '',
+      email: alumno.email || ''
     });
     setError('');
     setErrores({});
@@ -92,13 +98,19 @@ export default function Alumnos() {
       ...formData,
       nombre: limpiar(formData.nombre),
       apellido: limpiar(formData.apellido),
-      dni: limpiar(formData.dni)
+      dni: limpiar(formData.dni),
+      domicilio: limpiar(formData.domicilio),
+      telefono: limpiar(formData.telefono),
+      email: limpiar(formData.email)
     };
     const encontrados = soloErrores({
       nombre: validarNombrePersona(datos.nombre, 'nombre'),
       apellido: validarNombrePersona(datos.apellido, 'apellido'),
       dni: validarDni(datos.dni),
-      fecha_nacimiento: validarFechaNacimiento(datos.fecha_nacimiento)
+      fecha_nacimiento: validarFechaNacimiento(datos.fecha_nacimiento),
+      domicilio: validarDomicilio(datos.domicilio),
+      telefono: validarTelefono(datos.telefono),
+      email: datos.email ? validarEmail(datos.email) : null
     });
     setErrores(encontrados);
     if (Object.keys(encontrados).length > 0) return;
@@ -206,6 +218,21 @@ export default function Alumnos() {
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
           </select>
+        </label>
+        <label>
+          Domicilio
+          <input value={formData.domicilio} onChange={handleChange('domicilio')} />
+          {errores.domicilio && <small className="error">{errores.domicilio}</small>}
+        </label>
+        <label>
+          Teléfono
+          <input type="tel" inputMode="tel" value={formData.telefono} onChange={handleChange('telefono')} />
+          {errores.telefono && <small className="error">{errores.telefono}</small>}
+        </label>
+        <label>
+          Email
+          <input type="email" value={formData.email} onChange={handleChange('email')} />
+          {errores.email && <small className="error">{errores.email}</small>}
         </label>
       </div>
 

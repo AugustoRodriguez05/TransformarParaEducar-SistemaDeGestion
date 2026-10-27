@@ -4,9 +4,10 @@ import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { DIAS } from '../constantes.js';
 import { COLUMNAS_PROFESOR, COLUMNAS_USUARIO, tieneDatosAsociados } from '../asociados.js';
+import { generarLegajo } from '../legajos.js';
 import {
-  limpiar, primerError, validarDni, validarEmail, validarNombrePersona,
-  validarPasswordNueva, validarRangoHorario
+  limpiar, primerError, validarDni, validarEmail, validarEspecialidad, validarNombrePersona,
+  validarPasswordNueva, validarRangoHorario, validarTelefono
 } from '../validaciones.js';
 
 const router = express.Router();
@@ -58,6 +59,8 @@ router.post('/', async (req, res) => {
   const apellido = limpiar(req.body.apellido);
   const dni = limpiar(req.body.dni);
   const email = limpiar(req.body.email);
+  const especialidad = limpiar(req.body.especialidad);
+  const telefono = limpiar(req.body.telefono);
   if (!nombre || !apellido || !dni || !email || !password) {
     return res.status(400).json({ message: 'Todos los campos son obligatorios' });
   }
@@ -66,7 +69,9 @@ router.post('/', async (req, res) => {
     validarNombrePersona(apellido, 'apellido'),
     validarDni(dni),
     validarEmail(email),
-    validarPasswordNueva(password)
+    validarPasswordNueva(password),
+    validarEspecialidad(especialidad),
+    validarTelefono(telefono)
   );
   if (error) return res.status(400).json({ message: error });
 
@@ -85,10 +90,11 @@ router.post('/', async (req, res) => {
     [nombre, apellido, email, bcrypt.hashSync(password, 8), 'profesor']
   )).lastID;
 
+  const legajo = await generarLegajo(db, 'profesores');
   const result = await db.run(
-    `INSERT INTO profesores (usuario_id, nombre, apellido, dni, email, estado)
-     VALUES (?, ?, ?, ?, ?, 'Activo')`,
-    [usuarioId, nombre, apellido, dni, email]
+    `INSERT INTO profesores (usuario_id, legajo, nombre, apellido, dni, email, especialidad, telefono, estado)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Activo')`,
+    [usuarioId, legajo, nombre, apellido, dni, email, especialidad || null, telefono || null]
   );
 
   const nuevoProfesor = await db.get('SELECT * FROM profesores WHERE id = ?', result.lastID);
@@ -105,11 +111,15 @@ router.put('/:id', async (req, res) => {
   const apellido = limpiar(req.body.apellido);
   const dni = limpiar(req.body.dni);
   const email = limpiar(req.body.email);
+  const especialidad = limpiar(req.body.especialidad);
+  const telefono = limpiar(req.body.telefono);
   const error = primerError(
     validarNombrePersona(nombre, 'nombre'),
     validarNombrePersona(apellido, 'apellido'),
     validarDni(dni),
-    validarEmail(email)
+    validarEmail(email),
+    validarEspecialidad(especialidad),
+    validarTelefono(telefono)
   );
   if (error) return res.status(400).json({ message: error });
 
@@ -121,8 +131,8 @@ router.put('/:id', async (req, res) => {
   }
 
   await db.run(
-    'UPDATE profesores SET nombre = ?, apellido = ?, dni = ?, email = ? WHERE id = ?',
-    [nombre, apellido, dni, email, profesor.id]
+    'UPDATE profesores SET nombre = ?, apellido = ?, dni = ?, email = ?, especialidad = ?, telefono = ? WHERE id = ?',
+    [nombre, apellido, dni, email, especialidad || null, telefono || null, profesor.id]
   );
   if (profesor.usuario_id) {
     await db.run(

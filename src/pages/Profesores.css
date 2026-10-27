@@ -1,0 +1,7 @@
+/* Tabla de profesores: legajo y especialidad debajo del nombre */
+.tabla-profesores .profesor-detalle {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
