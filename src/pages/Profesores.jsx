@@ -158,7 +158,6 @@ function VistaAdministrador() {
     try {
       if (editingId) {
         await apiFetch(`/api/profesores/${editingId}`, { method: 'PUT', body: JSON.stringify(datos) });
-        setMessage('Profesor actualizado correctamente.');
       } else {
         await apiFetch('/api/profesores', { method: 'POST', body: JSON.stringify(datos) });
         setMessage('Profesor dado de alta correctamente.');
