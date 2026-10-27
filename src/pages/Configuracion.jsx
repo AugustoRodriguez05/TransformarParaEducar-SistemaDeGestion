@@ -5,6 +5,7 @@ import { useConfig } from '../useConfig';
 import CatalogoEditor from '../components/CatalogoEditor';
 import DeportesEditor from '../components/DeportesEditor';
 import TituloSeccion from '../components/TituloSeccion';
+import UsuariosEditor from '../components/UsuariosEditor';
 
 function CicloLectivo() {
   const config = useConfig();
@@ -63,6 +64,7 @@ export default function Configuracion() {
       <CatalogoEditor titulo="Materias" ruta="materias" icono={BookOpen} />
       <DeportesEditor />
       <CatalogoEditor titulo="Recorridos de transporte" ruta="recorridos" icono={Bus} />
+      <UsuariosEditor />
     </div>
   );
 }
