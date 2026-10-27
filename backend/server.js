@@ -16,6 +16,7 @@ import reportesRouter from './routes/reportes.routes.js';
 import turnosRouter from './routes/turnos.routes.js';
 import notificacionesRouter from './routes/notificaciones.routes.js';
 import usuariosRouter from './routes/usuarios.routes.js';
+import miPanelRouter from './routes/mi-panel.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/reportes', reportesRouter);
 app.use('/api/turnos', turnosRouter);
 app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api/usuarios', usuariosRouter);
+app.use('/api/mi-panel', miPanelRouter);
 app.use('/api', catalogosRouter);
 
 if (process.env.NODE_ENV === 'production') {

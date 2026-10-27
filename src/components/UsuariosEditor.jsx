@@ -4,7 +4,7 @@ import { apiFetch } from '../api';
 import ThIcono from './ThIcono';
 import TituloSeccion from './TituloSeccion';
 
-const ETIQUETA_ROL = { administrador: 'Administrador', profesor: 'Profesor', padre: 'Padre/tutor' };
+const ETIQUETA_ROL = { administrador: 'Administrador', profesor: 'Profesor', padre: 'Padre/tutor', alumno: 'Alumno' };
 
 // Usuarios del sistema: se crean al dar de alta profesores y padres; acá solo se activan o desactivan.
 export default function UsuariosEditor() {
