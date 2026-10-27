@@ -115,6 +115,16 @@ export function validarEspecialidad(valor) {
   return null;
 }
 
+// Reglas para desactivar un usuario: nadie se desactiva a sí mismo y siempre
+// queda al menos un administrador activo. adminsActivos: cuántos hay ahora.
+export function validarDesactivacion(usuario, idActual, adminsActivos) {
+  if (usuario.id === idActual) return 'No podés desactivarte a vos mismo.';
+  if (usuario.rol === 'administrador' && usuario.activo && adminsActivos <= 1) {
+    return 'No se puede desactivar al último administrador activo.';
+  }
+  return null;
+}
+
 // Nivel educativo de un curso.
 export function validarNivel(valor) {
   if (!valor) return 'Seleccioná el nivel.';
