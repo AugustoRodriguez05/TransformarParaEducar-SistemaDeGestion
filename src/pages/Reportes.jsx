@@ -44,11 +44,11 @@ export default function Reportes() {
     const cargar = (campo, path, texto) => apiFetch(path)
       .then((lista) => !cancelado && setOpciones((o) => ({ ...o, [campo]: aOpciones(lista, texto) })))
       .catch((err) => !cancelado && setError(err.message));
-    cargar('curso_id', '/api/cursos');
-    cargar('materia_id', '/api/materias');
+    void cargar('curso_id', '/api/cursos');
+    void cargar('materia_id', '/api/materias');
     // Cada deporte es un grupo: la opción muestra nombre, nivel y horario.
-    cargar('deporte_id', '/api/servicios/deportes', textoGrupo);
-    cargar('recorrido_id', '/api/servicios/recorridos');
+    void cargar('deporte_id', '/api/servicios/deportes', textoGrupo);
+    void cargar('recorrido_id', '/api/servicios/recorridos');
     return () => { cancelado = true; };
   }, []);
 
