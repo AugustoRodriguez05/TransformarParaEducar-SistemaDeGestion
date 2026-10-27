@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import { formatearFecha } from '../fecha';
+import Dato from './FichaDato';
 
 function calcularEdad(fechaNacimiento) {
   const [anio, mes, dia] = fechaNacimiento.split('-').map(Number);
@@ -13,16 +14,6 @@ function calcularEdad(fechaNacimiento) {
   const mesActual = hoy.getMonth() + 1;
   if (mesActual < mes || (mesActual === mes && hoy.getDate() < dia)) edad -= 1;
   return edad;
-}
-
-// Un dato de la ficha: ícono a la izquierda, etiqueta arriba y valor abajo.
-function Dato({ icono: Icono, titulo, children }) {
-  return (
-    <div className="ficha-dato">
-      <dt><Icono size={20} aria-hidden="true" />{titulo}</dt>
-      <dd>{children}</dd>
-    </div>
-  );
 }
 
 // Ficha completa de un alumno: datos del legajo, padres o tutores vinculados y servicios.

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDown, BadgeCheck, BookOpen, Calendar, Clock, FileText, GraduationCap, IdCard, Mail,
-  Pencil, Plus, RotateCcw, Save, Trash2, User, UserPlus
+  ArrowDown, BadgeCheck, BookOpen, Briefcase, Calendar, Clock, Eye, FileText, GraduationCap, Hash,
+  IdCard, Pencil, Plus, RotateCcw, Save, Settings, Trash2, User, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
 import { useConfig } from '../useConfig';
+import FichaProfesor from '../components/FichaProfesor';
 import Modal from '../components/Modal';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
@@ -13,7 +14,6 @@ import {
   limpiar, soloErrores, validarDni, validarEmail, validarEspecialidad, validarNombrePersona,
   validarPasswordNueva, validarRangoHorario, validarTelefono
 } from '../validaciones';
-import './Profesores.css';
 
 const PROFESOR_VACIO = { nombre: '', apellido: '', dni: '', email: '', password: '', especialidad: '', telefono: '' };
 const ASIGNACION_VACIA = { materia_id: '', curso_id: '', dia: '', hora_inicio: '', hora_fin: '' };
@@ -85,6 +85,7 @@ function VistaAdministrador() {
   const [error, setError] = useState('');
   const [errores, setErrores] = useState({});
   const [message, setMessage] = useState('');
+  const [profesorFicha, setProfesorFicha] = useState(null);
 
   const [seleccionado, setSeleccionado] = useState(null);
   const [asignaciones, setAsignaciones] = useState([]);
@@ -196,6 +197,13 @@ function VistaAdministrador() {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  // La ficha se cierra antes de abrir la edición, para que no queden dos ventanas abiertas.
+  const editarDesdeFicha = () => {
+    const profesor = profesorFicha;
+    setProfesorFicha(null);
+    abrirEdicion(profesor);
   };
 
   const verAsignaciones = async (profesor) => {
@@ -341,31 +349,39 @@ function VistaAdministrador() {
       {message && <p className="success">{message}</p>}
 
       <div className="tabla-scroll">
-        <table className="data-table tabla-profesores">
+        <table className="data-table">
           <thead>
             <tr>
+              <ThIcono icono={Hash}>Legajo</ThIcono>
               <ThIcono icono={User}>Apellido y Nombre</ThIcono>
               <ThIcono icono={FileText}>DNI</ThIcono>
-              <ThIcono icono={Mail}>Email</ThIcono>
+              <ThIcono icono={Briefcase}>Especialidad</ThIcono>
               <ThIcono icono={BadgeCheck}>Estado</ThIcono>
-              <th></th>
+              <ThIcono icono={Settings}>Acciones</ThIcono>
             </tr>
           </thead>
           <tbody>
             {profesores.map((p) => (
               <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
+                <td>{p.legajo}</td>
                 <td>
-                  {p.apellido}, {p.nombre}
-                  <span className="profesor-detalle">
-                    {p.especialidad ? `${p.legajo} · ${p.especialidad}` : p.legajo}
-                  </span>
+                  <button type="button" className="btn-texto" onClick={() => setProfesorFicha(p)}>{p.apellido}, {p.nombre}</button>
                 </td>
                 <td>{p.dni}</td>
-                <td>{p.email}</td>
+                <td>{p.especialidad || '—'}</td>
                 <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
                 <td>
                   <div className="actions">
-                    <button className="btn-accion btn-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Ver / asignar materias</button>
+                    <button
+                      type="button"
+                      className="btn-accion btn-ver btn-icono"
+                      aria-label="Ver ficha"
+                      title="Ver ficha"
+                      onClick={() => setProfesorFicha(p)}
+                    >
+                      <Eye size={16} aria-hidden="true" />
+                    </button>
+                    <button className="btn-accion btn-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Materias</button>
                     <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
                     <button className={p.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(p)}>
                       {p.estado === 'Activo'
@@ -380,6 +396,20 @@ function VistaAdministrador() {
           </tbody>
         </table>
       </div>
+
+      {profesorFicha && (
+        <Modal
+          icono={User}
+          titulo={<>Ficha de {profesorFicha.apellido}, {profesorFicha.nombre}</>}
+          onClose={() => setProfesorFicha(null)}
+          anchoMaximo={680}
+          acciones={(
+            <button className="btn-accion btn-editar" onClick={editarDesdeFicha}><Pencil size={16} aria-hidden="true" />Editar</button>
+          )}
+        >
+          <FichaProfesor profesor={profesorFicha} />
+        </Modal>
+      )}
 
       {seleccionado && (
         <Modal
