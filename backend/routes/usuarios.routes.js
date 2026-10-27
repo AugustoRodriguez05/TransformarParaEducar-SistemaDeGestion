@@ -16,7 +16,9 @@ router.get('/', async (req, res) => {
   res.json(await db.all(`${SELECT_USUARIO} ORDER BY apellido, nombre`));
 });
 
-// Activar o desactivar: un usuario inactivo no puede iniciar sesión.
+// Activar o desactivar: un usuario inactivo no puede iniciar sesión. Si es un
+// profesor, su estado en profesores cambia en la misma transacción.
+// Orden de bloqueo (igual en profesores.routes.js): administradores, usuario, profesor.
 router.patch('/:id/estado', async (req, res) => {
   const { estado } = req.body;
   if (!['Activo', 'Inactivo'].includes(estado)) {
@@ -24,19 +26,29 @@ router.patch('/:id/estado', async (req, res) => {
   }
 
   const db = await dbPromise;
-  const usuario = await db.get(`${SELECT_USUARIO} WHERE id = ?`, req.params.id);
-  if (!usuario) return res.status(404).json({ message: 'Usuario no encontrado' });
+  const resultado = await db.transaccion(async (tx) => {
+    // Se bloquean los administradores activos para que dos bajas simultáneas
+    // no dejen el sistema sin ninguno.
+    const admins = estado === 'Inactivo'
+      ? await tx.all("SELECT id FROM usuarios WHERE rol = 'administrador' AND activo = 1 ORDER BY id FOR UPDATE")
+      : [];
+    const usuario = await tx.get(`${SELECT_USUARIO} WHERE id = ? FOR UPDATE`, req.params.id);
+    if (!usuario) return { status: 404, message: 'Usuario no encontrado' };
 
-  if (estado === 'Inactivo') {
-    const { cantidad } = await db.get(
-      "SELECT COUNT(*)::int as cantidad FROM usuarios WHERE rol = 'administrador' AND activo = 1"
-    );
-    const error = validarDesactivacion(usuario, req.user.id, cantidad);
-    if (error) return res.status(400).json({ message: error });
-  }
+    if (estado === 'Inactivo') {
+      const error = validarDesactivacion(usuario, req.user.id, admins.length);
+      if (error) return { status: 400, message: error };
+    }
 
-  await db.run('UPDATE usuarios SET activo = ? WHERE id = ?', [estado === 'Activo' ? 1 : 0, usuario.id]);
-  res.json(await db.get(`${SELECT_USUARIO} WHERE id = ?`, usuario.id));
+    await tx.run('UPDATE usuarios SET activo = ? WHERE id = ?', [estado === 'Activo' ? 1 : 0, usuario.id]);
+    if (usuario.rol === 'profesor') {
+      await tx.run('UPDATE profesores SET estado = ? WHERE usuario_id = ?', [estado, usuario.id]);
+    }
+    return { usuario: await tx.get(`${SELECT_USUARIO} WHERE id = ?`, usuario.id) };
+  });
+
+  if (resultado.status) return res.status(resultado.status).json({ message: resultado.message });
+  res.json(resultado.usuario);
 });
 
 export default router;

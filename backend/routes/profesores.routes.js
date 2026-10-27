@@ -143,7 +143,9 @@ router.put('/:id', async (req, res) => {
   res.json(await db.get('SELECT * FROM profesores WHERE id = ?', profesor.id));
 });
 
-// Baja lógica / reactivación: también bloquea o habilita el inicio de sesión
+// Baja lógica / reactivación: también bloquea o habilita el inicio de sesión.
+// Profesor y usuario cambian en la misma transacción, bloqueando primero el
+// usuario y después el profesor (mismo orden que usuarios.routes.js).
 router.patch('/:id/estado', async (req, res) => {
   const { estado } = req.body;
   if (!['Activo', 'Inactivo'].includes(estado)) {
@@ -151,17 +153,24 @@ router.patch('/:id/estado', async (req, res) => {
   }
 
   const db = await dbPromise;
-  const profesor = await db.get('SELECT * FROM profesores WHERE id = ?', req.params.id);
-  if (!profesor) return res.status(404).json({ message: 'Profesor no encontrado' });
-  if (profesor.usuario_id === req.user.id) {
-    return res.status(400).json({ message: 'No podés darte de baja a vos mismo' });
-  }
+  const resultado = await db.transaccion(async (tx) => {
+    const { usuario_id: usuarioId } = await tx.get('SELECT usuario_id FROM profesores WHERE id = ?', req.params.id) || {};
+    if (usuarioId) await tx.get('SELECT id FROM usuarios WHERE id = ? FOR UPDATE', usuarioId);
+    const profesor = await tx.get('SELECT * FROM profesores WHERE id = ? FOR UPDATE', req.params.id);
+    if (!profesor) return { status: 404, message: 'Profesor no encontrado' };
+    if (profesor.usuario_id === req.user.id) {
+      return { status: 400, message: 'No podés darte de baja a vos mismo' };
+    }
 
-  await db.run('UPDATE profesores SET estado = ? WHERE id = ?', [estado, profesor.id]);
-  if (profesor.usuario_id) {
-    await db.run('UPDATE usuarios SET activo = ? WHERE id = ?', [estado === 'Activo' ? 1 : 0, profesor.usuario_id]);
-  }
-  res.json(await db.get('SELECT * FROM profesores WHERE id = ?', profesor.id));
+    await tx.run('UPDATE profesores SET estado = ? WHERE id = ?', [estado, profesor.id]);
+    if (profesor.usuario_id) {
+      await tx.run('UPDATE usuarios SET activo = ? WHERE id = ?', [estado === 'Activo' ? 1 : 0, profesor.usuario_id]);
+    }
+    return { profesor: await tx.get('SELECT * FROM profesores WHERE id = ?', profesor.id) };
+  });
+
+  if (resultado.status) return res.status(resultado.status).json({ message: resultado.message });
+  res.json(resultado.profesor);
 });
 
 // Eliminación definitiva, solo para profesores cargados por error: si tiene
