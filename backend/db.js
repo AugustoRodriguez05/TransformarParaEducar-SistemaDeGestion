@@ -37,43 +37,70 @@ function normalizarFila(fila) {
   return out;
 }
 
-const db = {
-  /** Devuelve la primera fila o undefined */
-  async get(sql, params) {
-    const res = await pool.query(convertirPlaceholders(sql), normalizar(params));
-    return res.rows[0] ? normalizarFila(res.rows[0]) : undefined;
-  },
+// get / all / run sobre un ejecutor: el pool (cualquier conexión libre) o una
+// conexión fija dentro de una transacción.
+function crearConsultas(ejecutor) {
+  return {
+    /** Devuelve la primera fila o undefined */
+    async get(sql, params) {
+      const res = await ejecutor.query(convertirPlaceholders(sql), normalizar(params));
+      return res.rows[0] ? normalizarFila(res.rows[0]) : undefined;
+    },
 
-  /** Devuelve todas las filas */
-  async all(sql, params) {
-    const res = await pool.query(convertirPlaceholders(sql), normalizar(params));
-    return res.rows.map(normalizarFila);
-  },
+    /** Devuelve todas las filas */
+    async all(sql, params) {
+      const res = await ejecutor.query(convertirPlaceholders(sql), normalizar(params));
+      return res.rows.map(normalizarFila);
+    },
 
-  /**
-   * Ejecuta INSERT/UPDATE/DELETE.
-   * Para INSERT devuelve { lastID } usando RETURNING id.
-   * Para UPDATE/DELETE devuelve { changes }.
-   */
-  async run(sql, params) {
-    const isInsert = /^\s*INSERT/i.test(sql);
-    let finalSql = convertirPlaceholders(sql);
-    if (isInsert && !/RETURNING/i.test(sql)) {
-      finalSql += ' RETURNING id';
+    /**
+     * Ejecuta INSERT/UPDATE/DELETE.
+     * Para INSERT devuelve { lastID } usando RETURNING id.
+     * Para UPDATE/DELETE devuelve { changes }.
+     */
+    async run(sql, params) {
+      const isInsert = /^\s*INSERT/i.test(sql);
+      let finalSql = convertirPlaceholders(sql);
+      if (isInsert && !/RETURNING/i.test(sql)) {
+        finalSql += ' RETURNING id';
+      }
+      const res = await ejecutor.query(finalSql, normalizar(params));
+      return {
+        lastID: res.rows[0]?.id ?? null,
+        changes: res.rowCount
+      };
     }
-    const res = await pool.query(finalSql, normalizar(params));
-    return {
-      lastID: res.rows[0]?.id ?? null,
-      changes: res.rowCount
-    };
-  },
+  };
+}
+
+const db = {
+  ...crearConsultas(pool),
 
   /** Ejecuta SQL multilínea (DDL, múltiples statements) */
   async exec(sql) {
     await pool.query(sql);
   },
 
-  /** Acceso al pool crudo por si se necesita una transacción */
+  /**
+   * Ejecuta fn(tx) en una transacción: tx tiene get / all / run sobre una misma
+   * conexión. Si fn termina bien se confirma; si lanza un error no queda nada aplicado.
+   */
+  async transaccion(fn) {
+    const cliente = await pool.connect();
+    try {
+      await cliente.query('BEGIN');
+      const resultado = await fn(crearConsultas(cliente));
+      await cliente.query('COMMIT');
+      return resultado;
+    } catch (err) {
+      await cliente.query('ROLLBACK');
+      throw err;
+    } finally {
+      cliente.release();
+    }
+  },
+
+  /** Acceso al pool crudo */
   get pool() { return pool; }
 };
 
