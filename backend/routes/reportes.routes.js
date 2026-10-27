@@ -20,14 +20,18 @@ async function reportePorCurso(db, { curso_id }) {
   if (!curso) return noEncontrado('Curso no encontrado');
 
   const filas = await db.all(
-    `SELECT legajo, apellido, nombre FROM alumnos
-     WHERE curso_id = ? AND estado = 'Activo'
-     ORDER BY apellido, nombre`,
+    `SELECT c.nivel as nivel, c.nombre as curso, a.legajo, a.apellido, a.nombre
+     FROM alumnos a
+     JOIN cursos c ON c.id = a.curso_id
+     WHERE a.curso_id = ? AND a.estado = 'Activo'
+     ORDER BY a.apellido, a.nombre`,
     curso_id
   );
   return {
     titulo: `Alumnos del curso ${curso.nombre}`,
     columnas: [
+      { key: 'nivel', label: 'Nivel educativo' },
+      { key: 'curso', label: 'Curso' },
       { key: 'legajo', label: 'Legajo' },
       { key: 'apellido', label: 'Apellido' },
       { key: 'nombre', label: 'Nombre' }
@@ -49,7 +53,8 @@ async function reportePorMateria(db, { materia_id, curso_id }) {
   }
 
   const filas = await db.all(
-    `SELECT DISTINCT m.nombre as materia,
+    `SELECT DISTINCT c.nivel as nivel,
+            m.nombre as materia,
             p.apellido || ', ' || p.nombre as profesor,
             c.nombre as curso,
             a.apellido || ', ' || a.nombre as alumno,
@@ -66,9 +71,10 @@ async function reportePorMateria(db, { materia_id, curso_id }) {
   return {
     titulo: `Alumnos de ${materia.nombre}`,
     columnas: [
-      { key: 'materia', label: 'Materia' },
-      { key: 'profesor', label: 'Profesor' },
+      { key: 'nivel', label: 'Nivel educativo' },
       { key: 'curso', label: 'Curso' },
+      { key: 'materia', label: 'Materia' },
+      { key: 'profesor', label: 'Profesor a cargo' },
       { key: 'alumno', label: 'Alumno' },
       { key: 'legajo', label: 'Legajo' }
     ],
