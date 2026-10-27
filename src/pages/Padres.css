@@ -1,0 +1,137 @@
+/* Pantalla de Padres y tutores: tarjeta de cada padre/tutor. Todo queda dentro de .padres. */
+
+/* Encabezado: nombre y estado en un renglón, email debajo */
+.padres .padre-identidad { align-items: flex-start; }
+
+.padres .padre-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.padres .padre-datos h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+
+.padres .padre-email {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.padres .padre-email svg { flex: none; margin-top: 2px; }
+
+/* Subtítulo de la lista de hijos */
+.padres .padre-subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  color: var(--primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.padres .padre-subtitulo svg { flex: none; color: var(--verde); }
+
+/* Cada hijo: nombre en negrita | legajo en gris */
+.padres .padre-hijo {
+  flex-wrap: wrap;
+  min-width: 0;
+  row-gap: 4px;
+}
+
+.padres .padre-hijo-nombre { font-weight: 700; }
+
+.padres .padre-hijo-legajo {
+  padding-left: 10px;
+  border-left: 1px solid #cbd5e1;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Botón que abre el selector: borde punteado, a todo el ancho */
+.padres button.padre-vincular-abrir {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.padres button.padre-vincular-abrir:hover {
+  background: #f8fafc;
+  border-color: var(--verde);
+  color: var(--verde);
+}
+
+/* Selector abierto: ocupa el mismo ancho que el botón */
+.padres .padre-vincular {
+  flex-wrap: wrap;
+  max-width: none;
+}
+
+.padres .padre-select { min-width: 220px; }
+
+/* Celular */
+@media (max-width: 768px) {
+  .padres .padre-card { padding: 20px; }
+
+  .padres .padre-encabezado { align-items: flex-start; }
+
+  .padres .padre-encabezado > .actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .padres .padre-identidad { gap: 12px; }
+
+  .padres .padre-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .padres .padre-datos { padding-top: 0; }
+
+  .padres .padre-email { font-size: 0.85rem; }
+
+  .padres .padre-hijos { padding: 4px 12px; }
+
+  /* Hijo: nombre y legajo uno debajo del otro, "Quitar" abajo alineado con el texto */
+  .padres .padre-hijos li { gap: 8px; }
+
+  .padres .padre-hijo {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 2px;
+    flex: 1 1 100%;
+  }
+
+  .padres .padre-hijo-icono { grid-row: span 2; }
+
+  .padres .padre-hijo-legajo {
+    padding-left: 0;
+    border-left: none;
+    white-space: nowrap;
+  }
+
+  .padres .padre-hijos li > button { margin-left: 42px; }
+
+  .padres .padre-select { min-width: 100%; }
+
+  .padres .padre-vincular > button { flex: 1; }
+}

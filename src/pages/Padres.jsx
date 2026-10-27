@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  ArrowDown, GraduationCap, Link, Pencil, RotateCcw, Save, Trash2, User, UserPlus, UsersRound, X
+  ArrowDown, GraduationCap, Link, Mail, Pencil, Plus, RotateCcw, Save, Trash2, User, UserPlus, UsersRound, X
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import Modal from '../components/Modal';
@@ -8,6 +8,7 @@ import TituloSeccion from '../components/TituloSeccion';
 import {
   limpiar, soloErrores, validarEmail, validarNombrePersona, validarPasswordNueva
 } from '../validaciones';
+import './Padres.css';
 
 const PADRE_VACIO = { nombre: '', apellido: '', email: '', password: '' };
 
@@ -18,6 +19,8 @@ export default function Padres() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(PADRE_VACIO);
   const [alumnoAVincular, setAlumnoAVincular] = useState({});
+  // Padres con el selector de vincular abierto (por id)
+  const [vinculando, setVinculando] = useState({});
   const [error, setError] = useState('');
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState('');
@@ -111,8 +114,13 @@ export default function Padres() {
     const alumnoId = alumnoAVincular[padre.id];
     if (!alumnoId) return;
     if (await ejecutar(`/api/padres/${padre.id}/alumnos`, 'POST', { alumno_id: alumnoId })) {
-      setAlumnoAVincular({ ...alumnoAVincular, [padre.id]: '' });
+      cerrarVincular(padre);
     }
+  };
+
+  const cerrarVincular = (padre) => {
+    setAlumnoAVincular({ ...alumnoAVincular, [padre.id]: '' });
+    setVinculando({ ...vinculando, [padre.id]: false });
   };
 
   // Campos y botones del formulario. Los usan el alta (arriba de la lista)
@@ -152,7 +160,7 @@ export default function Padres() {
   );
 
   return (
-    <div>
+    <div className="padres">
       {formVisible && editingId && (
         <Modal
           icono={Pencil}
@@ -192,11 +200,13 @@ export default function Padres() {
             <div className="padre-encabezado">
               <div className="padre-identidad">
                 <span className="padre-avatar"><User size={24} aria-hidden="true" /></span>
-                <h3>
-                  <span className="padre-nombre">{p.apellido}, {p.nombre}</span>{' '}
-                  <small className="padre-email">{p.email}</small>{' '}
-                  <span className={`badge ${p.activo ? 'activo' : 'inactivo'}`}>{p.activo ? 'Activo' : 'Inactivo'}</span>
-                </h3>
+                <div className="padre-datos">
+                  <h3>
+                    <span className="padre-nombre">{p.apellido}, {p.nombre}</span>
+                    <span className={`badge ${p.activo ? 'activo' : 'inactivo'}`}>{p.activo ? 'Activo' : 'Inactivo'}</span>
+                  </h3>
+                  <span className="padre-email"><Mail size={16} aria-hidden="true" />{p.email}</span>
+                </div>
               </div>
               <div className="actions">
                 <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
@@ -209,13 +219,18 @@ export default function Padres() {
               </div>
             </div>
 
+            <h4 className="padre-subtitulo">
+              <UsersRound size={18} aria-hidden="true" />Alumnos vinculados ({p.hijos.length})
+            </h4>
+
             {p.hijos.length === 0 ? <p>Sin alumnos vinculados.</p> : (
               <ul className="padre-hijos">
                 {p.hijos.map((h) => (
                   <li key={h.id}>
                     <span className="padre-hijo">
                       <span className="padre-hijo-icono"><GraduationCap size={16} aria-hidden="true" /></span>
-                      <span>{h.apellido}, {h.nombre} — legajo {h.legajo}</span>
+                      <span className="padre-hijo-nombre">{h.apellido}, {h.nombre}</span>
+                      <span className="padre-hijo-legajo">Legajo {h.legajo}</span>
                     </span>
                     <button className="btn-accion btn-cancelar" onClick={() => ejecutar(`/api/padres/${p.id}/alumnos/${h.id}`, 'DELETE')}><X size={16} aria-hidden="true" />Quitar</button>
                   </li>
@@ -223,22 +238,29 @@ export default function Padres() {
               </ul>
             )}
 
-            <div className="padre-vincular">
-              <span className="padre-select">
-                <GraduationCap size={18} aria-hidden="true" />
-                <select
-                  aria-label="Vincular alumno"
-                  value={alumnoAVincular[p.id] || ''}
-                  onChange={(e) => setAlumnoAVincular({ ...alumnoAVincular, [p.id]: e.target.value })}
-                >
-                  <option value="">Vincular alumno…</option>
-                  {disponibles.map((a) => (
-                    <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} ({a.legajo})</option>
-                  ))}
-                </select>
-              </span>
-              <button disabled={!alumnoAVincular[p.id]} onClick={() => vincular(p)}><Link size={18} aria-hidden="true" />Vincular</button>
-            </div>
+            {!vinculando[p.id] ? (
+              <button className="padre-vincular-abrir" onClick={() => setVinculando({ ...vinculando, [p.id]: true })}>
+                <Plus size={18} aria-hidden="true" />Vincular alumno
+              </button>
+            ) : (
+              <div className="padre-vincular">
+                <span className="padre-select">
+                  <GraduationCap size={18} aria-hidden="true" />
+                  <select
+                    aria-label="Vincular alumno"
+                    value={alumnoAVincular[p.id] || ''}
+                    onChange={(e) => setAlumnoAVincular({ ...alumnoAVincular, [p.id]: e.target.value })}
+                  >
+                    <option value="">Vincular alumno…</option>
+                    {disponibles.map((a) => (
+                      <option key={a.id} value={a.id}>{a.apellido}, {a.nombre} ({a.legajo})</option>
+                    ))}
+                  </select>
+                </span>
+                <button disabled={!alumnoAVincular[p.id]} onClick={() => vincular(p)}><Link size={18} aria-hidden="true" />Vincular</button>
+                <button className="secondary" onClick={() => cerrarVincular(p)}>Cancelar</button>
+              </div>
+            )}
           </div>
         );
       })}
