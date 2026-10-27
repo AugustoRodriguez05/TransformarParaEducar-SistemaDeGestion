@@ -3,6 +3,7 @@ import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { COLUMNAS_ALUMNO, tieneDatosAsociados } from '../asociados.js';
 import { generarLegajo } from '../legajos.js';
+import { materiasDelCurso } from '../materias.js';
 import {
   limpiar, primerError, validarDni, validarDomicilio, validarEmail, validarFechaNacimiento,
   validarNombrePersona, validarTelefono
@@ -55,7 +56,7 @@ router.get('/', async (req, res) => {
   if (q && q.trim() !== '') {
     const like = `%${q.trim()}%`;
     alumnos = await db.all(
-      `SELECT a.*, c.nombre as curso_nombre FROM alumnos a
+      `SELECT a.*, c.nombre as curso_nombre, c.nivel as curso_nivel FROM alumnos a
        LEFT JOIN cursos c ON c.id = a.curso_id
        WHERE a.dni LIKE ? OR a.apellido LIKE ? OR a.legajo LIKE ?
        ORDER BY a.apellido, a.nombre`,
@@ -63,7 +64,7 @@ router.get('/', async (req, res) => {
     );
   } else {
     alumnos = await db.all(
-      `SELECT a.*, c.nombre as curso_nombre FROM alumnos a
+      `SELECT a.*, c.nombre as curso_nombre, c.nivel as curso_nivel FROM alumnos a
        LEFT JOIN cursos c ON c.id = a.curso_id
        ORDER BY a.apellido, a.nombre`
     );
@@ -75,7 +76,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const db = await dbPromise;
   const alumno = await db.get(
-    `SELECT a.*, c.nombre as curso_nombre FROM alumnos a
+    `SELECT a.*, c.nombre as curso_nombre, c.nivel as curso_nivel FROM alumnos a
      LEFT JOIN cursos c ON c.id = a.curso_id
      WHERE a.id = ?`,
     req.params.id
@@ -98,6 +99,14 @@ router.get('/:id/padres', async (req, res) => {
     req.params.id
   );
   res.json(padres);
+});
+
+// Materias y profesores del curso del alumno (para la ficha del alumno)
+router.get('/:id/materias', async (req, res) => {
+  const db = await dbPromise;
+  const alumno = await db.get('SELECT curso_id FROM alumnos WHERE id = ?', req.params.id);
+  if (!alumno) return res.status(404).json({ message: 'Alumno no encontrado' });
+  res.json(await materiasDelCurso(db, alumno.curso_id));
 });
 
 // HU1 - Alta de legajo de alumnos
@@ -126,7 +135,7 @@ router.post('/', async (req, res) => {
   );
 
   const nuevoAlumno = await db.get(
-    `SELECT a.*, c.nombre as curso_nombre FROM alumnos a
+    `SELECT a.*, c.nombre as curso_nombre, c.nivel as curso_nivel FROM alumnos a
      LEFT JOIN cursos c ON c.id = a.curso_id
      WHERE a.id = ?`,
     result.lastID
@@ -162,7 +171,7 @@ router.put('/:id', async (req, res) => {
   );
 
   const actualizado = await db.get(
-    `SELECT a.*, c.nombre as curso_nombre FROM alumnos a
+    `SELECT a.*, c.nombre as curso_nombre, c.nivel as curso_nivel FROM alumnos a
      LEFT JOIN cursos c ON c.id = a.curso_id
      WHERE a.id = ?`,
     req.params.id

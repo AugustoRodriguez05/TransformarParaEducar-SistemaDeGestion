@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, Calendar, ClipboardList, Clock, Plus, User, UsersRound } from 'lucide-react';
+import { BookOpen, ClipboardList, Plus, User, UsersRound } from 'lucide-react';
 import { apiFetch } from '../api';
+import MateriasCurso from '../components/MateriasCurso';
 import ServiciosAlumno from '../components/ServiciosAlumno';
-import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
 import { useConfig } from '../useConfig';
 
@@ -73,31 +73,7 @@ export default function PanelFamilia() {
           <p>Estado del legajo: <span className={`badge ${detalle.alumno.estado.toLowerCase()}`}>{detalle.alumno.estado}</span></p>
 
           <TituloSeccion nivel="h4" icono={BookOpen}>Materias y profesores</TituloSeccion>
-          {detalle.materias.length === 0 && <p>Todavía no hay materias asignadas a este curso.</p>}
-          {detalle.materias.length > 0 && (
-            <div className="tabla-scroll">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <ThIcono icono={BookOpen}>Materia</ThIcono>
-                    <ThIcono icono={User}>Profesor</ThIcono>
-                    <ThIcono icono={Calendar}>Día</ThIcono>
-                    <ThIcono icono={Clock}>Horario</ThIcono>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detalle.materias.map((m, idx) => (
-                    <tr key={idx}>
-                      <td>{m.materia_nombre}</td>
-                      <td>{m.profesor_apellido}, {m.profesor_nombre}</td>
-                      <td>{m.dia}</td>
-                      <td>{m.hora_inicio} - {m.hora_fin}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <MateriasCurso materias={detalle.materias} />
 
           <TituloSeccion nivel="h4" icono={ClipboardList}>Servicios del alumno</TituloSeccion>
           {detalle.alumno.estado === 'Activo'
