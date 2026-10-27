@@ -39,11 +39,10 @@ app.use('/api/turnos', turnosRouter);
 app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api', catalogosRouter);
 
-// En producción, servir el frontend estático (build de Vite)
 if (process.env.NODE_ENV === 'production') {
   const distDir = path.join(__dirname, '..', 'dist');
   app.use(express.static(distDir));
-  app.get('*', (_req, res) => res.sendFile(path.join(distDir, 'index.html')));
+  app.get('{*path}', (_req, res) => res.sendFile(path.join(distDir, 'index.html')));
 }
 
 const PORT = process.env.PORT || 3002;
