@@ -348,7 +348,7 @@ function VistaAdministrador() {
       {message && <p className="success">{message}</p>}
 
       <div className="tabla-scroll">
-        <table className="data-table">
+        <table className="data-table tabla-tarjetas">
           <thead>
             <tr>
               <ThIcono icono={Hash}>Legajo</ThIcono>
@@ -362,13 +362,13 @@ function VistaAdministrador() {
           <tbody>
             {profesores.map((p) => (
               <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
-                <td>{p.legajo}</td>
-                <td>
+                <td data-label="Legajo">{p.legajo}</td>
+                <td data-label="Apellido y Nombre">
                   <button type="button" className="btn-texto" onClick={() => setProfesorFicha(p)}>{p.apellido}, {p.nombre}</button>
                 </td>
-                <td>{p.dni}</td>
-                <td>{p.especialidad || '—'}</td>
-                <td><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
+                <td data-label="DNI">{p.dni}</td>
+                <td data-label="Especialidad">{p.especialidad || '—'}</td>
+                <td data-label="Estado"><span className={`badge ${p.estado.toLowerCase()}`}>{p.estado}</span></td>
                 <td>
                   <div className="actions">
                     <button
