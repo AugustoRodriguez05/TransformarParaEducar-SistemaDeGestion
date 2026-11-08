@@ -74,7 +74,7 @@ function App() {
             <Route
               path="turnos"
               element={
-                <ProtectedRoute roles={['profesor', 'padre']}>
+                <ProtectedRoute roles={['administrador', 'profesor', 'padre']}>
                   <Turnos />
                 </ProtectedRoute>
               }

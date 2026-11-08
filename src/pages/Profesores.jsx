@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowDown, BadgeCheck, BookOpen, Briefcase, Calendar, Clock, Eye, FileText, GraduationCap, Hash,
-  IdCard, Layers, Pencil, Plus, RotateCcw, Save, Settings, Trash2, User, UserPlus
+  Layers, Pencil, Plus, RotateCcw, Save, Settings, Trash2, User, UserPlus
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
@@ -85,9 +85,8 @@ function VistaAdministrador() {
   const [error, setError] = useState('');
   const [errores, setErrores] = useState({});
   const [message, setMessage] = useState('');
+  // Ficha del profesor: sus datos y, debajo, la gestión de sus materias a cargo.
   const [profesorFicha, setProfesorFicha] = useState(null);
-
-  const [seleccionado, setSeleccionado] = useState(null);
   const [asignaciones, setAsignaciones] = useState([]);
   const [asigForm, setAsigForm] = useState(ASIGNACION_VACIA);
   const [asigEditandoId, setAsigEditandoId] = useState(null);
@@ -205,19 +204,23 @@ function VistaAdministrador() {
     abrirEdicion(profesor);
   };
 
-  const verAsignaciones = async (profesor) => {
-    setSeleccionado(profesor);
+  const abrirFicha = async (profesor) => {
+    setProfesorFicha(profesor);
+    setAsignaciones([]);
     setAsigError('');
     setAsigForm(ASIGNACION_VACIA);
     setAsigEditandoId(null);
-    const data = await apiFetch(`/api/profesores/${profesor.id}/asignaciones`);
-    setAsignaciones(data);
+    try {
+      setAsignaciones(await apiFetch(`/api/profesores/${profesor.id}/asignaciones`));
+    } catch (err) {
+      setAsigError(err.message);
+    }
   };
 
   const handleAsigChange = (campo) => (e) => setAsigForm({ ...asigForm, [campo]: e.target.value });
 
   const recargarAsignaciones = async () => {
-    const data = await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`);
+    const data = await apiFetch(`/api/profesores/${profesorFicha.id}/asignaciones`);
     setAsignaciones(data);
   };
 
@@ -242,7 +245,7 @@ function VistaAdministrador() {
   const eliminarAsignacion = async (asignacion) => {
     setAsigError('');
     try {
-      await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones/${asignacion.id}`, { method: 'DELETE' });
+      await apiFetch(`/api/profesores/${profesorFicha.id}/asignaciones/${asignacion.id}`, { method: 'DELETE' });
       if (asigEditandoId === asignacion.id) cancelarEdicionAsignacion();
       await recargarAsignaciones();
     } catch (err) {
@@ -260,13 +263,13 @@ function VistaAdministrador() {
     }
     try {
       if (asigEditandoId) {
-        await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones/${asigEditandoId}`, {
+        await apiFetch(`/api/profesores/${profesorFicha.id}/asignaciones/${asigEditandoId}`, {
           method: 'PUT',
           body: JSON.stringify(asigForm)
         });
         setAsigEditandoId(null);
       } else {
-        await apiFetch(`/api/profesores/${seleccionado.id}/asignaciones`, {
+        await apiFetch(`/api/profesores/${profesorFicha.id}/asignaciones`, {
           method: 'POST',
           body: JSON.stringify(asigForm)
         });
@@ -364,7 +367,7 @@ function VistaAdministrador() {
               <tr key={p.id} className={p.estado === 'Inactivo' ? 'row-inactivo' : ''}>
                 <td data-label="Legajo">{p.legajo}</td>
                 <td data-label="Apellido y Nombre">
-                  <button type="button" className="btn-texto" onClick={() => setProfesorFicha(p)}>{p.apellido}, {p.nombre}</button>
+                  <button type="button" className="btn-texto" onClick={() => abrirFicha(p)}>{p.apellido}, {p.nombre}</button>
                 </td>
                 <td data-label="DNI">{p.dni}</td>
                 <td data-label="Especialidad">{p.especialidad || '—'}</td>
@@ -376,11 +379,10 @@ function VistaAdministrador() {
                       className="btn-accion btn-ver btn-icono"
                       aria-label="Ver ficha"
                       title="Ver ficha"
-                      onClick={() => setProfesorFicha(p)}
+                      onClick={() => abrirFicha(p)}
                     >
                       <Eye size={16} aria-hidden="true" />
                     </button>
-                    <button className="btn-accion btn-ver" onClick={() => verAsignaciones(p)}><IdCard size={16} aria-hidden="true" />Materias</button>
                     <button className="btn-accion btn-editar" onClick={() => abrirEdicion(p)}><Pencil size={16} aria-hidden="true" />Editar</button>
                     <button className={p.estado === 'Activo' ? 'btn-accion btn-baja' : 'btn-accion btn-reactivar'} onClick={() => cambiarEstado(p)}>
                       {p.estado === 'Activo'
@@ -401,110 +403,103 @@ function VistaAdministrador() {
           icono={User}
           titulo={<>Ficha de {profesorFicha.apellido}, {profesorFicha.nombre}</>}
           onClose={() => setProfesorFicha(null)}
-          anchoMaximo={680}
+          anchoMaximo={740}
           acciones={(
             <button className="btn-accion btn-editar" onClick={editarDesdeFicha}><Pencil size={16} aria-hidden="true" />Editar</button>
           )}
         >
           <FichaProfesor profesor={profesorFicha} />
-        </Modal>
-      )}
 
-      {seleccionado && (
-        <Modal
-          icono={BookOpen}
-          titulo={<>Materias asignadas a {seleccionado.nombre} {seleccionado.apellido}</>}
-          onClose={() => setSeleccionado(null)}
-          anchoMaximo={740}
-        >
-
-          {asignaciones.length === 0 && <p>Sin materias asignadas todavía.</p>}
-          {asignaciones.length > 0 && (
-            <div className="tabla-scroll">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <ThIcono icono={BookOpen}>Materia</ThIcono>
-                    <ThIcono icono={GraduationCap}>Curso</ThIcono>
-                    <ThIcono icono={Layers}>Nivel</ThIcono>
-                    <ThIcono icono={Calendar}>Día</ThIcono>
-                    <ThIcono icono={Clock}>Horario</ThIcono>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {asignaciones.map((a) => (
-                    <tr key={a.id}>
-                      <td>{a.materia_nombre}</td>
-                      <td><span className="badge curso">{a.curso_nombre}</span></td>
-                      <td>{a.curso_nivel || '—'}</td>
-                      <td>{a.dia}</td>
-                      <td>{a.hora_inicio} - {a.hora_fin}</td>
-                      <td>
-                        <div className="actions actions-derecha">
-                          <button
-                            type="button"
-                            className="btn-accion btn-editar btn-icono"
-                            aria-label="Editar"
-                            title="Editar"
-                            onClick={() => editarAsignacion(a)}
-                          >
-                            <Pencil size={16} aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-accion btn-eliminar btn-icono"
-                            aria-label="Eliminar"
-                            title="Eliminar"
-                            onClick={() => eliminarAsignacion(a)}
-                          >
-                            <Trash2 size={16} aria-hidden="true" />
-                          </button>
-                        </div>
-                      </td>
+          <section className="ficha-seccion">
+            <h4 className="ficha-titulo"><BookOpen size={20} aria-hidden="true" />Materias a cargo</h4>
+            {asignaciones.length === 0 && <p>Sin materias asignadas todavía.</p>}
+            {asignaciones.length > 0 && (
+              <div className="tabla-scroll">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <ThIcono icono={BookOpen}>Materia</ThIcono>
+                      <ThIcono icono={GraduationCap}>Curso</ThIcono>
+                      <ThIcono icono={Layers}>Nivel</ThIcono>
+                      <ThIcono icono={Calendar}>Día</ThIcono>
+                      <ThIcono icono={Clock}>Horario</ThIcono>
+                      <th></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <form className="form-grid asig-form" onSubmit={handleAsigSubmit}>
-            <label>
-              Materia
-              <select value={asigForm.materia_id} onChange={handleAsigChange('materia_id')} required>
-                <option value="">Seleccionar…</option>
-                {materias.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-              </select>
-            </label>
-            <label>
-              Curso
-              <select value={asigForm.curso_id} onChange={handleAsigChange('curso_id')} required>
-                <option value="">Seleccionar…</option>
-                {cursos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-              </select>
-            </label>
-            <label>
-              Día
-              <select value={asigForm.dia} onChange={handleAsigChange('dia')} required>
-                <option value="">Seleccionar…</option>
-                {dias.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </label>
-            <label>Desde<input type="time" value={asigForm.hora_inicio} onChange={handleAsigChange('hora_inicio')} required /></label>
-            <label>Hasta<input type="time" value={asigForm.hora_fin} onChange={handleAsigChange('hora_fin')} required /></label>
-            <div className="form-actions">
-              {asigEditandoId ? (
-                <>
-                  <button type="submit"><Save size={18} aria-hidden="true" />Guardar cambios</button>
-                  <button type="button" className="secondary" onClick={cancelarEdicionAsignacion}>Cancelar</button>
-                </>
-              ) : (
-                <button type="submit"><Plus size={18} aria-hidden="true" />Asignar</button>
-              )}
-            </div>
-          </form>
-          {asigError && <p className="error">{asigError}</p>}
+                  </thead>
+                  <tbody>
+                    {asignaciones.map((a) => (
+                      <tr key={a.id}>
+                        <td>{a.materia_nombre}</td>
+                        <td><span className="badge curso">{a.curso_nombre}</span></td>
+                        <td>{a.curso_nivel || '—'}</td>
+                        <td>{a.dia}</td>
+                        <td>{a.hora_inicio} - {a.hora_fin}</td>
+                        <td>
+                          <div className="actions actions-derecha">
+                            <button
+                              type="button"
+                              className="btn-accion btn-editar btn-icono"
+                              aria-label="Editar"
+                              title="Editar"
+                              onClick={() => editarAsignacion(a)}
+                            >
+                              <Pencil size={16} aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-accion btn-eliminar btn-icono"
+                              aria-label="Eliminar"
+                              title="Eliminar"
+                              onClick={() => eliminarAsignacion(a)}
+                            >
+                              <Trash2 size={16} aria-hidden="true" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+  
+            <form className="form-grid asig-form" onSubmit={handleAsigSubmit}>
+              <label>
+                Materia
+                <select value={asigForm.materia_id} onChange={handleAsigChange('materia_id')} required>
+                  <option value="">Seleccionar…</option>
+                  {materias.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                </select>
+              </label>
+              <label>
+                Curso
+                <select value={asigForm.curso_id} onChange={handleAsigChange('curso_id')} required>
+                  <option value="">Seleccionar…</option>
+                  {cursos.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                </select>
+              </label>
+              <label>
+                Día
+                <select value={asigForm.dia} onChange={handleAsigChange('dia')} required>
+                  <option value="">Seleccionar…</option>
+                  {dias.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </label>
+              <label>Desde<input type="time" value={asigForm.hora_inicio} onChange={handleAsigChange('hora_inicio')} required /></label>
+              <label>Hasta<input type="time" value={asigForm.hora_fin} onChange={handleAsigChange('hora_fin')} required /></label>
+              <div className="form-actions">
+                {asigEditandoId ? (
+                  <>
+                    <button type="submit"><Save size={18} aria-hidden="true" />Guardar cambios</button>
+                    <button type="button" className="secondary" onClick={cancelarEdicionAsignacion}>Cancelar</button>
+                  </>
+                ) : (
+                  <button type="submit"><Plus size={18} aria-hidden="true" />Asignar</button>
+                )}
+              </div>
+            </form>
+            {asigError && <p className="error">{asigError}</p>}
+          </section>
         </Modal>
       )}
 
