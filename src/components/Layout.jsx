@@ -10,6 +10,7 @@ const NAV_POR_ROL = {
     { to: '/profesores', label: 'Profesores' },
     { to: '/padres', label: 'Padres' },
     { to: '/reportes', label: 'Reportes' },
+    { to: '/cuotas', label: 'Cuotas' },
     { to: '/configuracion', label: 'Configuración' }
   ],
   profesor: [
