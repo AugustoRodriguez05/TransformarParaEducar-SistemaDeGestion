@@ -6,6 +6,7 @@ import {
   validarImporte, validarPeriodo, vencimientoDelPeriodo
 } from '../cuotas.js';
 import { esFechaValida, limpiar } from '../validaciones.js';
+import { enviarDeudas, enviarRecordatorios } from '../envios.js';
 
 const router = express.Router();
 
@@ -200,6 +201,45 @@ router.get('/facturas', async (req, res) => {
       .filter((c) => c.factura_id === f.id)
       .map(({ importe, fecha_transferencia, numero_operacion }) => ({ importe, fecha_transferencia, numero_operacion }))
   })));
+});
+
+// ---------- Envíos de mails a padres ----------
+// Los mismos envíos que se hacen solos (recordatorio el último día hábil, deuda
+// el día 20), lanzados a mano para un período. Lo ya enviado no se repite.
+
+function rutaEnvio(enviar) {
+  return async (req, res) => {
+    const periodo = limpiar(req.body.periodo);
+    const errorPeriodo = validarPeriodo(periodo);
+    if (errorPeriodo) return res.status(400).json({ message: errorPeriodo });
+
+    const resultado = await enviar(periodo);
+    if (resultado.sinConfigurar) {
+      return res.status(503).json({ message: 'El envío de mails no está configurado (faltan SMTP_USER y SMTP_PASS).' });
+    }
+    if (resultado.enCurso) return res.status(409).json({ message: 'Ya hay un envío en curso para ese período.' });
+    res.json(resultado);
+  };
+}
+
+router.post('/envios/recordatorio', rutaEnvio(enviarRecordatorios));
+router.post('/envios/deuda', rutaEnvio(enviarDeudas));
+
+// Estado de cada envío del período.
+router.get('/envios', async (req, res) => {
+  const periodo = limpiar(req.query.periodo);
+  const errorPeriodo = validarPeriodo(periodo);
+  if (errorPeriodo) return res.status(400).json({ message: errorPeriodo });
+
+  const db = await dbPromise;
+  res.json(await db.all(
+    `SELECT e.id, e.tipo, e.estado, e.intentos, e.fecha, u.apellido || ', ' || u.nombre as padre, u.email
+     FROM envios_mail e
+     JOIN usuarios u ON u.id = e.padre_usuario_id
+     WHERE e.periodo = ?
+     ORDER BY e.tipo, u.apellido, u.nombre`,
+    periodo
+  ));
 });
 
 export default router;

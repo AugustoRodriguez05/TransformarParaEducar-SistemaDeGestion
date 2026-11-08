@@ -3,6 +3,9 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDb } from './db.js';
+import {
+  enviarDeudas, enviarRecordatorios, esDiaDeDeuda, esUltimoDiaHabil, feriadosDelPeriodo, hoyEnArgentina, periodoDeFecha
+} from './envios.js';
 
 import authRouter from './routes/auth.routes.js';
 import alumnosRouter from './routes/alumnos.routes.js';
@@ -24,7 +27,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-initDb().then(() => {
+const baseLista = initDb().then(() => {
   console.log('Base de datos PostgreSQL inicializada correctamente.');
 }).catch((err) => {
   console.error('Error al inicializar la base de datos', err);
@@ -51,8 +54,34 @@ if (process.env.NODE_ENV === 'production') {
   app.get('{*path}', (_req, res) => res.sendFile(path.join(distDir, 'index.html')));
 }
 
+// Mails automáticos a padres: el último día hábil del mes, el recordatorio de
+// pago; el día 20, el aviso de deuda (los dos del mes actual). Lo que ya se
+// envió no se repite, así que revisar varias veces el mismo día no duplica mails.
+const UNA_HORA = 60 * 60 * 1000;
+
+async function revisarEnvios() {
+  try {
+    await baseLista;
+    const hoy = hoyEnArgentina();
+    const periodo = periodoDeFecha(hoy);
+    const resultados = [];
+    const opciones = { automatico: true };
+    if (esUltimoDiaHabil(hoy, await feriadosDelPeriodo(periodo))) {
+      resultados.push(['recordatorio', await enviarRecordatorios(periodo, opciones)]);
+    }
+    if (esDiaDeDeuda(hoy)) resultados.push(['deuda', await enviarDeudas(periodo, opciones)]);
+    for (const [tipo, r] of resultados) {
+      if (r.enviados || r.errores) console.log(`Mails de ${tipo} de ${periodo}: ${r.enviados} enviado(s), ${r.errores} con error.`);
+    }
+  } catch (err) {
+    console.error('Error al revisar los mails automáticos', err);
+  }
+}
+
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => {
   console.log(`Backend de gestión corriendo en http://localhost:${PORT}`);
+  void revisarEnvios();
+  setInterval(revisarEnvios, UNA_HORA);
 });
 
