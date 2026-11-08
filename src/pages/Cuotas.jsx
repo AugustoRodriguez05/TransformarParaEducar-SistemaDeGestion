@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
-  BadgeCheck, Calendar, DollarSign, FilePlus, Hash, Receipt, Save, Search, Table, Tags, User, Wallet
+  AlertTriangle, BadgeCheck, Calendar, DollarSign, FilePlus, Hash, Mail, Receipt, Save, Search, Send, Table, Tags, User,
+  Wallet
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import ThIcono from '../components/ThIcono';
@@ -11,7 +12,8 @@ import { formatearFecha, hoyISO } from '../fecha';
 const PESTANAS = [
   { id: 'valores', etiqueta: 'Valores', icono: Tags },
   { id: 'generar', etiqueta: 'Generar cuotas', icono: FilePlus },
-  { id: 'facturas', etiqueta: 'Facturas y comprobantes', icono: Receipt }
+  { id: 'facturas', etiqueta: 'Facturas y comprobantes', icono: Receipt },
+  { id: 'envios', etiqueta: 'Envíos', icono: Mail }
 ];
 
 const formatearImporte = (importe) =>
@@ -45,6 +47,7 @@ export default function Cuotas() {
       {pestana === 'valores' && <Valores />}
       {pestana === 'generar' && <Generar />}
       {pestana === 'facturas' && <Facturas />}
+      {pestana === 'envios' && <Envios />}
     </div>
   );
 }
@@ -263,6 +266,110 @@ function Facturas() {
                       </ul>
                     )}
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </>
+  );
+}
+
+// ---------- Envíos de mails a padres ----------
+
+const TIPOS_ENVIO = { recordatorio: 'Recordatorio', deuda: 'Deuda' };
+// Estado del envío → clase de badge existente.
+const BADGE_ENVIO = { Enviado: 'confirmado', Error: 'cancelado', Pendiente: 'pendiente' };
+
+// "AAAA-MM-DD HH:MM:SS" → "DD/MM/AAAA HH:MM"
+const formatearFechaHora = (fecha) => `${formatearFecha(fecha.slice(0, 10))} ${fecha.slice(11, 16)}`;
+
+function Envios() {
+  const [periodo, setPeriodo] = useState(periodoActual());
+  const [envios, setEnvios] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+  const [mensaje, setMensaje] = useState('');
+  const [error, setError] = useState('');
+
+  const cargar = (p) => apiFetch(`/api/cuotas/envios?periodo=${encodeURIComponent(p)}`);
+
+  useEffect(() => {
+    if (!periodo) return;
+    let cancelado = false;
+    cargar(periodo)
+      .then((data) => !cancelado && setEnvios(data))
+      .catch((err) => !cancelado && setError(err.message));
+    return () => { cancelado = true; };
+  }, [periodo]);
+
+  const cambiarPeriodo = (valor) => {
+    setPeriodo(valor);
+    setEnvios(null);
+    setMensaje('');
+    setError('');
+  };
+
+  const enviar = async (tipo) => {
+    if (!periodo) return;
+    setError('');
+    setMensaje('');
+    setEnviando(true);
+    try {
+      const r = await apiFetch(`/api/cuotas/envios/${tipo}`, { method: 'POST', body: JSON.stringify({ periodo }) });
+      setMensaje(`${TIPOS_ENVIO[tipo]} de ${r.periodo}: ${r.enviados} enviado(s), ${r.errores} con error y ${r.salteados} salteado(s) porque ya se habían enviado.`);
+      setEnvios(await cargar(periodo));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="card form-card">
+        <div className="form-grid">
+          <label>
+            Período
+            <input type="month" value={periodo} onChange={(e) => cambiarPeriodo(e.target.value)} required />
+          </label>
+        </div>
+        <div className="form-actions">
+          <button type="button" disabled={enviando || !periodo} onClick={() => enviar('recordatorio')}>
+            <Send size={18} aria-hidden="true" />Enviar recordatorio
+          </button>
+          <button type="button" disabled={enviando || !periodo} onClick={() => enviar('deuda')}>
+            <AlertTriangle size={18} aria-hidden="true" />Enviar deuda
+          </button>
+        </div>
+      </div>
+
+      {enviando && <p>Enviando mails…</p>}
+      {mensaje && <p className="success">{mensaje}</p>}
+      {error && <p className="error">{error}</p>}
+
+      {envios && (envios.length === 0 ? <p>No hay envíos para el período seleccionado.</p> : (
+        <div className="tabla-scroll">
+          <table className="data-table tabla-tarjetas">
+            <thead>
+              <tr>
+                <ThIcono icono={User}>Padre</ThIcono>
+                <ThIcono icono={Mail}>Tipo</ThIcono>
+                <ThIcono icono={BadgeCheck}>Estado</ThIcono>
+                <ThIcono icono={Calendar}>Fecha</ThIcono>
+              </tr>
+            </thead>
+            <tbody>
+              {envios.map((e) => (
+                <tr key={e.id}>
+                  <td data-label="Padre">{e.padre} ({e.email})</td>
+                  <td data-label="Tipo">{TIPOS_ENVIO[e.tipo]}</td>
+                  <td data-label="Estado">
+                    <span className={`badge ${BADGE_ENVIO[e.estado]}`}>{e.estado}</span>
+                    {e.intentos > 1 && ` (${e.intentos} intentos)`}
+                  </td>
+                  <td data-label="Fecha">{formatearFechaHora(e.fecha)}</td>
                 </tr>
               ))}
             </tbody>
