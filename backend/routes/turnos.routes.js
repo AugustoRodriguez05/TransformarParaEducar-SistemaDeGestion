@@ -318,6 +318,32 @@ router.get('/mios', requireRole('padre'), async (req, res) => {
   ));
 });
 
+// ---------- Administrador ----------
+
+// Todos los turnos (solo consulta), con filtros opcionales por profesor y fecha.
+router.get('/todos', requireRole('administrador'), async (req, res) => {
+  const { profesor_id: profesorId, fecha } = req.query;
+  const condiciones = [];
+  const params = [];
+  if (profesorId) {
+    if (!Number.isInteger(Number(profesorId))) return res.status(400).json({ message: 'El profesor no es válido' });
+    condiciones.push('d.profesor_id = ?');
+    params.push(Number(profesorId));
+  }
+  if (fecha) {
+    if (!esFechaValida(fecha)) return res.status(400).json({ message: 'Fecha: ingresá una fecha válida.' });
+    condiciones.push('d.fecha = ?');
+    params.push(fecha);
+  }
+
+  const db = await dbPromise;
+  res.json(await db.all(
+    `${SELECT_TURNO} ${condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : ''}
+     ORDER BY d.fecha, d.hora_inicio`,
+    params
+  ));
+});
+
 // ---------- Cancelación (profesor o padre, cada uno solo sus turnos) ----------
 
 router.patch('/:id/cancelar', requireRole('profesor', 'padre'), async (req, res) => {
