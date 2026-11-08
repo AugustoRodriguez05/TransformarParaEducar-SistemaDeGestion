@@ -17,16 +17,32 @@ const REPORTES = [
     etiqueta: 'Alumnos por deporte, nivel, horario y profesor',
     filtros: [['deporte_id', false], ['nivel', false]]
   },
-  { tipo: 'recorrido', etiqueta: 'Alumnos por recorrido de transporte', filtros: [['recorrido_id', true]] }
+  { tipo: 'recorrido', etiqueta: 'Alumnos por recorrido de transporte', filtros: [['recorrido_id', true]] },
+  { tipo: 'ingresos', etiqueta: 'Ingresos', filtros: [['desde', true], ['hasta', true]] },
+  { tipo: 'pagos-completos', etiqueta: 'Pagos completos', filtros: [['desde', true], ['hasta', true]] },
+  { tipo: 'pagos-incompletos', etiqueta: 'Pagos incompletos', filtros: [['desde', true], ['hasta', true]] },
+  {
+    tipo: 'pagos-deporte',
+    etiqueta: 'Pagos de deportes',
+    filtros: [['desde', true], ['hasta', true], ['deporte_id', false], ['nivel', false]]
+  },
+  {
+    tipo: 'pagos-recorrido',
+    etiqueta: 'Pagos de transporte',
+    filtros: [['desde', true], ['hasta', true], ['recorrido_id', false]]
+  }
 ];
 
 // Etiqueta de cada filtro y, si alguno de los reportes lo usa como opcional, el texto de la opción vacía.
+// fecha: el filtro se carga con un campo de fecha en lugar de una lista.
 const FILTROS = {
   curso_id: { etiqueta: 'Curso', todos: 'Todos los cursos' },
   materia_id: { etiqueta: 'Materia' },
   nivel: { etiqueta: 'Nivel', todos: 'Todos los niveles' },
   deporte_id: { etiqueta: 'Deporte', todos: 'Todos los deportes' },
-  recorrido_id: { etiqueta: 'Recorrido' }
+  recorrido_id: { etiqueta: 'Recorrido', todos: 'Todos los recorridos' },
+  desde: { etiqueta: 'Desde', fecha: true },
+  hasta: { etiqueta: 'Hasta', fecha: true }
 };
 
 const aOpciones = (lista, texto = (x) => x.nombre) => lista.map((x) => ({ valor: x.id, texto: texto(x) }));
@@ -102,14 +118,23 @@ export default function Reportes() {
           {filtros.map(([campo, obligatorio]) => (
             <label key={campo}>
               {obligatorio ? FILTROS[campo].etiqueta : `${FILTROS[campo].etiqueta} (opcional)`}
-              <select
-                value={valores[campo] || ''}
-                onChange={(e) => setValores({ ...valores, [campo]: e.target.value })}
-                required={obligatorio}
-              >
-                <option value="">{obligatorio ? 'Seleccionar…' : FILTROS[campo].todos}</option>
-                {(opciones[campo] || []).map((o) => <option key={o.valor} value={o.valor}>{o.texto}</option>)}
-              </select>
+              {FILTROS[campo].fecha ? (
+                <input
+                  type="date"
+                  value={valores[campo] || ''}
+                  onChange={(e) => setValores({ ...valores, [campo]: e.target.value })}
+                  required={obligatorio}
+                />
+              ) : (
+                <select
+                  value={valores[campo] || ''}
+                  onChange={(e) => setValores({ ...valores, [campo]: e.target.value })}
+                  required={obligatorio}
+                >
+                  <option value="">{obligatorio ? 'Seleccionar…' : FILTROS[campo].todos}</option>
+                  {(opciones[campo] || []).map((o) => <option key={o.valor} value={o.valor}>{o.texto}</option>)}
+                </select>
+              )}
             </label>
           ))}
         </div>
