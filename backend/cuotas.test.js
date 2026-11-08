@@ -5,7 +5,9 @@ import {
   TIPOS_CON_REFERENCIA,
   TIPOS_TARIFA,
   calcularCuota,
+  estadoSegunComprobantes,
   numeroFactura,
+  numeroOrdenPago,
   tarifasPorConcepto,
   validarImporte,
   validarPeriodo,
@@ -173,5 +175,35 @@ describe('tarifasPorConcepto', () => {
 
   it('sin filas, no hay ninguna tarifa', () => {
     expect(tarifasPorConcepto([])).toEqual({ cuota: null, comedor: null, deporte: {}, transporte: {} })
+  })
+})
+
+describe('numeroOrdenPago', () => {
+  it('completa con ceros hasta 8 dígitos', () => {
+    expect(numeroOrdenPago(1)).toBe('OP-00000001')
+    expect(numeroOrdenPago(12345678)).toBe('OP-12345678')
+  })
+})
+
+describe('estadoSegunComprobantes', () => {
+  it('sin comprobantes no recalcula nada', () => {
+    expect(estadoSegunComprobantes('1000.00', [])).toBeNull()
+  })
+
+  it('si la suma no llega al total, queda en pago parcial', () => {
+    expect(estadoSegunComprobantes('1000.00', ['400.00', 599.99])).toEqual({ estadoCuota: 'Pago parcial', itemsPagados: false })
+  })
+
+  it('si la suma iguala el total, queda pagada con los ítems pagados', () => {
+    expect(estadoSegunComprobantes('1000.00', ['400.00', 600])).toEqual({ estadoCuota: 'Pagada', itemsPagados: true })
+  })
+
+  it('si la suma supera el total, también queda pagada', () => {
+    expect(estadoSegunComprobantes(1000, ['1500.50'])).toEqual({ estadoCuota: 'Pagada', itemsPagados: true })
+  })
+
+  it('suma en centavos, sin errores de redondeo', () => {
+    // 0.1 + 0.2 en punto flotante da 0.30000000000000004
+    expect(estadoSegunComprobantes('0.30', ['0.10', '0.20'])).toEqual({ estadoCuota: 'Pagada', itemsPagados: true })
   })
 })
