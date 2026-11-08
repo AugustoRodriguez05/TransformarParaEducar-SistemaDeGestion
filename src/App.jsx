@@ -11,6 +11,7 @@ import PanelFamilia from './pages/PanelFamilia';
 import PanelAlumno from './pages/PanelAlumno';
 import Padres from './pages/Padres';
 import Reportes from './pages/Reportes';
+import Cuotas from './pages/Cuotas';
 import Configuracion from './pages/Configuracion';
 import Turnos from './pages/Turnos';
 import Notificaciones from './pages/Notificaciones';
@@ -60,6 +61,14 @@ function App() {
               element={
                 <ProtectedRoute roles={['administrador']}>
                   <Reportes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="cuotas"
+              element={
+                <ProtectedRoute roles={['administrador']}>
+                  <Cuotas />
                 </ProtectedRoute>
               }
             />
