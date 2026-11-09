@@ -15,21 +15,29 @@
   gap: 20px;
   padding: 12px 24px;
   min-height: 80px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
+/* Marca en dos líneas: "Sistema de Gestión ·" y abajo "Educar Para Transformar" */
 .brand {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 10px;
   font-family: var(--font-heading);
-  font-size: 1.05rem;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1.25;
   color: white;
   white-space: nowrap;
+}
+
+.brand-texto {
+  display: flex;
+  flex-direction: column;
 }
 
 /* Logo dentro de un círculo blanco, como en la página web */
@@ -42,47 +50,145 @@
   padding: 4px;
 }
 
+/* El menú ocupa todo el espacio entre los separadores de la marca y del usuario, en
+   una sola fila, con las opciones repartidas en forma pareja y al menos 8 px entre
+   ellas. Es contenedor de sus opciones: si el espacio no alcanza, se achican (ver abajo). */
 .nav {
   display: flex;
-  gap: 10px;
-  flex: 1;
+  justify-content: space-evenly;
+  gap: 8px;
+  flex: 1 1 0;
   flex-wrap: nowrap;
+  min-width: 0;
+  container-type: inline-size;
 }
 
+/* Cada opción con su ícono; la activa, en una pastilla verde claro */
 .nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
-  font-weight: 500;
-  padding: 4px 0;
-  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
   white-space: nowrap;
 }
 
-.nav a.active,
+.nav a svg { flex: none; }
+
 .nav a:hover {
   color: white;
-  border-bottom-color: white;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.nav a.active,
+.nav a.active:hover {
+  color: var(--verde-oscuro);
+  background: #d1fae5;
+}
+
+/* Si el menú no entra: letra de 13 px y espacios más chicos. Los íconos quedan siempre. */
+@container (max-width: 789px) {
+  .topbar > .nav a { font-size: 13px; padding: 8px; }
+}
+
+@container (max-width: 700px) {
+  .topbar > .nav a { padding: 8px 6px; gap: 5px; }
+}
+
+/* Separador vertical fino entre la marca, el menú y el usuario (solo en la barra de computadora) */
+.topbar > .nav,
+.topbar > .user-menu {
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  padding-left: 20px;
 }
 
 .user-menu {
+  flex: none;
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 0.9rem;
+  font-size: 14px;
   color: rgba(255, 255, 255, 0.9);
 }
 
-/* "Salir" con el mismo estilo que el botón "Acceso" de la web */
+.user-nombre {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.user-nombre svg { flex: none; }
+
+/* Un nombre muy largo se corta con "…" (el completo queda en el title) */
+.user-nombre-texto {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "Salir" con el mismo estilo que el botón "Acceso" de la web, compacto */
 .user-menu button {
   background: var(--primary);
   color: white;
   border-radius: var(--radius-md);
-  padding: 8px 16px;
+  height: 36px;
+  padding: 0 14px;
   font-family: var(--font-heading);
+  font-size: 14px;
   font-weight: 600;
 }
 
 .user-menu button:hover { background: var(--primary-light); }
+
+/* Menú con muchas opciones (administrador): marca, opciones y usuario más compactos
+   para que entren en una fila con la marca y el nombre visibles desde 1200 px. */
+.topbar:has(> .nav > a:nth-child(5)) > .brand { font-size: 14px; }
+/* :where() para que las reglas de @container (menú angosto) sigan pudiendo achicarlo */
+:where(.topbar:has(> .nav > a:nth-child(5))) > .nav a { padding: 8px 10px; }
+.topbar:has(> .nav > a:nth-child(5)) .user-nombre { font-size: 13px; }
+.topbar:has(> .nav > a:nth-child(5)) .user-nombre-texto { max-width: 140px; }
+
+/* Entre 1200 y 1359 px, con la marca y el nombre visibles, no alcanza: espacios de
+   la barra más chicos y, cuanto más angosta la pantalla, opciones más apretadas. */
+@media (min-width: 1200px) and (max-width: 1359px) {
+  .topbar:has(> .nav > a:nth-child(5)) { gap: 12px; padding: 12px 16px; }
+
+  .topbar:has(> .nav > a:nth-child(5)) > .nav,
+  .topbar:has(> .nav > a:nth-child(5)) > .user-menu { padding-left: 12px; }
+}
+
+@media (min-width: 1200px) and (max-width: 1314px) {
+  .topbar:has(> .nav > a:nth-child(5)) > .nav a { padding: 8px 6px; gap: 4px; }
+}
+
+@media (min-width: 1200px) and (max-width: 1269px) {
+  .topbar:has(> .nav > a:nth-child(5)) { gap: 8px; padding: 12px 8px; }
+
+  .topbar:has(> .nav > a:nth-child(5)) > .nav,
+  .topbar:has(> .nav > a:nth-child(5)) > .user-menu { padding-left: 8px; }
+
+  .topbar:has(> .nav > a:nth-child(5)) > .nav a { padding: 8px 4px; gap: 3px; }
+}
+
+/* Pantallas medianas: para que el menú siga entrando en una fila con sus íconos, la
+   marca queda solo con el logo, el usuario solo con "Salir" y los espacios son más
+   chicos. (:has(> .nav): solo con el menú en la barra, no con la hamburguesa.) */
+@media (max-width: 1199px) {
+  .topbar:has(> .nav) { gap: 12px; padding: 12px 16px; }
+
+  .topbar:has(> .nav) > .nav,
+  .topbar:has(> .nav) > .user-menu { padding-left: 12px; }
+
+  .topbar:has(> .nav) > .brand .brand-texto,
+  .topbar:has(> .nav) > .user-menu .user-nombre { display: none; }
+}
+
 
 /* ---------- Contenido ---------- */
 
@@ -341,6 +447,52 @@ button.btn-accion.btn-icono,
 }
 
 .th-icono svg { flex: none; }
+
+/* Concepto de la tabla de valores (Cuotas): ícono en círculo, nombre y etiquetas al lado */
+.concepto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.concepto-icono {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #d1fae5;
+  color: var(--verde);
+}
+
+.concepto-texto,
+.concepto-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pastilla {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: var(--verde-oscuro);
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Pestañas (Cuotas): la activa en verde; si no entran en una fila, bajan */
+[role="tablist"] { flex-wrap: wrap; }
+[role="tablist"] button[aria-selected="true"] { background: var(--verde); }
+[role="tablist"] button[aria-selected="true"]:hover { background: var(--verde-oscuro); }
 
 .data-table th {
   background: #f1f5f9;
@@ -867,11 +1019,13 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
   .login-card { padding: 28px 20px; }
 }
 
-/* ---------- Barra en celular: menú hamburguesa ----------
-   Va después del @media de 600px para que, en la barra, estas reglas manden
-   en todo el rango de celular. En computadora no aplica nada de esto. */
-@media (max-width: 768px) {
-  .topbar {
+/* ---------- Barra con menú hamburguesa ----------
+   Va después del @media de 600px para que, en la barra, estas reglas manden.
+   Layout.jsx decide cuándo hay hamburguesa: en celular (hasta 768 px) y, si el
+   menú tiene muchas opciones (administrador), hasta 899 px. Por eso las reglas
+   de la barra se aplican cuando el botón está (:has), no solo por el ancho. */
+@media (max-width: 899px) {
+  .topbar:has(> .menu-toggle) {
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: center;
@@ -880,7 +1034,7 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
     position: sticky;
   }
 
-  .brand { flex: 1; min-width: 0; white-space: normal; }
+  .topbar:has(> .menu-toggle) .brand { flex: 1; min-width: 0; white-space: normal; font-size: 1.05rem; }
 
   button.menu-toggle {
     flex: none;
@@ -906,15 +1060,22 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
     box-shadow: var(--shadow-md);
   }
 
-  .menu-celular .nav { flex-direction: column; gap: 0; }
+  .menu-celular .nav { flex: none; flex-direction: column; gap: 0; }
 
   .menu-celular .nav a {
+    font-size: 1rem;
+    font-weight: 500;
     padding: 14px 0;
+    border-radius: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   }
 
+  /* En el menú desplegado se mantiene la lista con separadores: la activa va en negrita, sin pastilla */
   .menu-celular .nav a.active,
+  .menu-celular .nav a.active:hover,
   .menu-celular .nav a:hover {
+    color: white;
+    background: none;
     border-bottom-color: rgba(255, 255, 255, 0.15);
     font-weight: 700;
   }
@@ -925,6 +1086,11 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
     padding-top: 16px;
   }
 
+  /* En el menú desplegado hay lugar: el nombre se muestra completo */
+  .menu-celular .user-nombre-texto { max-width: none; white-space: normal; }
+}
+
+@media (max-width: 768px) {
   /* ---------- Tablas como tarjetas (Alumnos, Profesores y Usuarios) ----------
      Cada fila es una tarjeta; la etiqueta de cada dato sale de su data-label. */
   .tabla-scroll:has(> .tabla-tarjetas) {
@@ -991,4 +1157,13 @@ button.modal-cerrar:hover { background: #f1f5f9; color: var(--primary); }
   .tabla-tarjetas td:not([data-label])::before { content: none; }
 
   .tabla-tarjetas .actions { flex-wrap: wrap; }
+
+  /* Valores de cuotas: las etiquetas pasan abajo del nombre */
+  .concepto-texto {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .pastilla { white-space: normal; }
 }

@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  AlertTriangle, BadgeCheck, Calendar, DollarSign, FilePlus, Hash, Mail, Receipt, Save, Search, Send, Table, Tags, User,
-  Wallet
+  AlertTriangle, BadgeCheck, Bus, Calendar, DollarSign, FilePlus, Hash, Mail, Pencil, Receipt, Save, Search, Send, Table,
+  Tags, User, UtensilsCrossed, Volleyball, Wallet
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
-import { textoGrupo } from '../deportes';
+import { TODOS_LOS_NIVELES, textoGrupo } from '../deportes';
 import { formatearFecha, hoyISO } from '../fecha';
 
 const PESTANAS = [
@@ -55,15 +55,26 @@ export default function Cuotas() {
 // ---------- Valores: cuota base, comedor, cada deporte y cada recorrido ----------
 
 // Cada concepto se identifica en el formulario como "tipo:referencia".
+// nombre: el texto completo de la lista del formulario; titulo y etiquetas: cómo se muestra en la tabla.
 function conceptos(valores) {
   return [
-    { clave: 'cuota:', tipo: 'cuota', referencia_id: null, nombre: 'Cuota mensual', tarifa: valores.cuota },
-    { clave: 'comedor:', tipo: 'comedor', referencia_id: null, nombre: 'Comedor', tarifa: valores.comedor },
+    {
+      clave: 'cuota:', tipo: 'cuota', referencia_id: null, nombre: 'Cuota mensual',
+      titulo: 'Cuota mensual', etiquetas: [], icono: Calendar, tarifa: valores.cuota
+    },
+    {
+      clave: 'comedor:', tipo: 'comedor', referencia_id: null, nombre: 'Comedor',
+      titulo: 'Comedor', etiquetas: [], icono: UtensilsCrossed, tarifa: valores.comedor
+    },
     ...valores.deportes.map((d) => ({
-      clave: `deporte:${d.id}`, tipo: 'deporte', referencia_id: d.id, nombre: `Deporte: ${textoGrupo(d)}`, tarifa: d.tarifa
+      clave: `deporte:${d.id}`, tipo: 'deporte', referencia_id: d.id, nombre: `Deporte: ${textoGrupo(d)}`,
+      titulo: `Deporte: ${d.nombre}`,
+      etiquetas: [d.nivel || TODOS_LOS_NIVELES, `${d.dia} ${d.hora_inicio} a ${d.hora_fin}`],
+      icono: Volleyball, tarifa: d.tarifa
     })),
     ...valores.recorridos.map((r) => ({
-      clave: `transporte:${r.id}`, tipo: 'transporte', referencia_id: r.id, nombre: `Transporte: ${r.nombre}`, tarifa: r.tarifa
+      clave: `transporte:${r.id}`, tipo: 'transporte', referencia_id: r.id, nombre: `Transporte: ${r.nombre}`,
+      titulo: `Transporte: ${r.nombre}`, etiquetas: [], icono: Bus, tarifa: r.tarifa
     }))
   ];
 }
@@ -74,6 +85,7 @@ function Valores() {
   const [valores, setValores] = useState(null);
   const [form, setForm] = useState({ ...VALOR_VACIO, vigente_desde: hoyISO() });
   const [error, setError] = useState('');
+  const importeRef = useRef(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -85,6 +97,13 @@ function Valores() {
 
   const lista = valores ? conceptos(valores) : [];
   const handleChange = (campo) => (e) => setForm({ ...form, [campo]: e.target.value });
+
+  // Carga el concepto en el formulario con su valor actual, para guardar uno nuevo desde hoy.
+  const editar = (concepto) => {
+    setForm({ clave: concepto.clave, importe: concepto.tarifa ? String(concepto.tarifa.importe) : '', vigente_desde: hoyISO() });
+    setError('');
+    importeRef.current?.focus();
+  };
 
   const guardar = async (e) => {
     e.preventDefault();
@@ -120,7 +139,7 @@ function Valores() {
           </label>
           <label>
             Importe
-            <input inputMode="decimal" value={form.importe} onChange={handleChange('importe')} required />
+            <input ref={importeRef} inputMode="decimal" value={form.importe} onChange={handleChange('importe')} required />
           </label>
           <label>
             Vigente desde
@@ -142,14 +161,34 @@ function Valores() {
                 <ThIcono icono={Tags}>Concepto</ThIcono>
                 <ThIcono icono={DollarSign}>Valor</ThIcono>
                 <ThIcono icono={Calendar}>Vigente desde</ThIcono>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {lista.map((c) => (
                 <tr key={c.clave}>
-                  <td data-label="Concepto">{c.nombre}</td>
+                  <td data-label="Concepto">
+                    <div className="concepto">
+                      <span className="concepto-icono"><c.icono size={18} aria-hidden="true" /></span>
+                      <div className="concepto-texto">
+                        <span>{c.titulo}</span>
+                        {c.etiquetas.length > 0 && (
+                          <span className="concepto-etiquetas">
+                            {c.etiquetas.map((e) => <span key={e} className="pastilla">{e}</span>)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
                   <td data-label="Valor">{c.tarifa ? formatearImporte(c.tarifa.importe) : '—'}</td>
                   <td data-label="Vigente desde">{c.tarifa ? formatearFecha(c.tarifa.vigente_desde) : '—'}</td>
+                  <td>
+                    <div className="actions actions-derecha">
+                      <button type="button" className="btn-accion btn-editar" onClick={() => editar(c)}>
+                        <Pencil size={16} aria-hidden="true" />Editar
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
