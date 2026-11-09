@@ -77,3 +77,23 @@ export function tarifasPorConcepto(filas) {
   }
   return tarifas;
 }
+
+// Número de orden de pago correlativo: OP-00000001, OP-00000002, ...
+export function numeroOrdenPago(correlativo) {
+  return `OP-${String(correlativo).padStart(8, '0')}`;
+}
+
+/**
+ * Estado de la cuota según los comprobantes de pago cargados en su factura.
+ * total: total de la factura; importes: importe de cada comprobante (pesos, número o texto).
+ * Devuelve { estadoCuota, itemsPagados }: si la suma cubre el total, 'Pagada' y todos los
+ * ítems pasan a 'Pagado'; si no llega, 'Pago parcial' y los ítems quedan como están.
+ * Sin comprobantes devuelve null (no hay nada que recalcular).
+ */
+export function estadoSegunComprobantes(total, importes) {
+  if (importes.length === 0) return null;
+  const pagado = importes.reduce((suma, importe) => suma + aCentavos(importe), 0);
+  return pagado >= aCentavos(total)
+    ? { estadoCuota: 'Pagada', itemsPagados: true }
+    : { estadoCuota: 'Pago parcial', itemsPagados: false };
+}

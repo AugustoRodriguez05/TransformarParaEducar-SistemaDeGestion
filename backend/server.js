@@ -21,10 +21,14 @@ import notificacionesRouter from './routes/notificaciones.routes.js';
 import usuariosRouter from './routes/usuarios.routes.js';
 import miPanelRouter from './routes/mi-panel.routes.js';
 import cuotasRouter from './routes/cuotas.routes.js';
+import pagosRouter from './routes/pagos.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(cors());
+// Pagos va antes del express.json() general: lee su propio JSON, y la carga de
+// comprobantes acepta hasta 5 MB (el general corta en 100 KB).
+app.use('/api/pagos', pagosRouter);
 app.use(express.json());
 
 const baseLista = initDb().then(() => {
