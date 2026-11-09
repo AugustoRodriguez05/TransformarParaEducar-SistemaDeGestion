@@ -1,57 +1,69 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import {
+  BarChart3, Bell, BookOpen, Calendar, CreditCard, GraduationCap, Home, LogOut, Menu, Presentation, Settings, User, Users, X
+} from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { apiFetch } from '../api';
 
 const NAV_POR_ROL = {
   administrador: [
-    { to: '/alumnos', label: 'Alumnos' },
-    { to: '/profesores', label: 'Profesores' },
-    { to: '/padres', label: 'Padres' },
-    { to: '/turnos', label: 'Turnos' },
-    { to: '/reportes', label: 'Reportes' },
-    { to: '/cuotas', label: 'Cuotas' },
-    { to: '/configuracion', label: 'Configuración' }
+    { to: '/alumnos', label: 'Alumnos', icono: GraduationCap },
+    { to: '/profesores', label: 'Profesores', icono: Presentation },
+    { to: '/padres', label: 'Padres', icono: Users },
+    { to: '/turnos', label: 'Turnos', icono: Calendar },
+    { to: '/reportes', label: 'Reportes', icono: BarChart3 },
+    { to: '/cuotas', label: 'Cuotas', icono: CreditCard },
+    { to: '/configuracion', label: 'Configuración', icono: Settings }
   ],
   profesor: [
-    { to: '/profesores', label: 'Mis materias' },
-    { to: '/turnos', label: 'Turnos' },
-    { to: '/notificaciones', label: 'Notificaciones', conContador: true }
+    { to: '/profesores', label: 'Mis materias', icono: BookOpen },
+    { to: '/turnos', label: 'Turnos', icono: Calendar },
+    { to: '/notificaciones', label: 'Notificaciones', icono: Bell, conContador: true }
   ],
   padre: [
-    { to: '/panel-familia', label: 'Panel de familia' },
-    { to: '/turnos', label: 'Turnos' },
-    { to: '/notificaciones', label: 'Notificaciones', conContador: true }
+    { to: '/panel-familia', label: 'Panel de familia', icono: Home },
+    { to: '/turnos', label: 'Turnos', icono: Calendar },
+    { to: '/notificaciones', label: 'Notificaciones', icono: Bell, conContador: true }
   ],
   alumno: [
-    { to: '/mi-panel', label: 'Mi panel' }
+    { to: '/mi-panel', label: 'Mi panel', icono: Home }
   ]
 };
 
-// Mismo corte que el @media de la barra en App.css. En computadora el botón y el
+// Cuándo la barra usa el menú hamburguesa (mismos cortes que en App.css): en celular
+// y, si el menú tiene muchas opciones (administrador), también en pantallas que no
+// alcanzan para mostrarlas en una fila con sus íconos. En computadora el botón y el
 // menú desplegable no se renderizan, así que la barra queda igual que siempre.
 const CONSULTA_CELULAR = '(max-width: 768px)';
+const CONSULTA_MENU_LARGO = '(max-width: 899px)';
+const MAX_OPCIONES_MENU_CORTO = 4;
 
 // También se escucha resize: algunos navegadores no avisan el "change" de la consulta.
-function suscribirCelular(avisar) {
-  const consulta = window.matchMedia(CONSULTA_CELULAR);
-  consulta.addEventListener('change', avisar);
+function suscribirAncho(avisar) {
+  const consultas = [CONSULTA_CELULAR, CONSULTA_MENU_LARGO].map((c) => window.matchMedia(c));
+  consultas.forEach((c) => c.addEventListener('change', avisar));
   window.addEventListener('resize', avisar);
   return () => {
-    consulta.removeEventListener('change', avisar);
+    consultas.forEach((c) => c.removeEventListener('change', avisar));
     window.removeEventListener('resize', avisar);
   };
 }
 
-const esCelularAhora = () => window.matchMedia(CONSULTA_CELULAR).matches;
+// 'celular', 'mediana' (hasta 899 px) o 'computadora'
+function anchoAhora() {
+  if (window.matchMedia(CONSULTA_CELULAR).matches) return 'celular';
+  return window.matchMedia(CONSULTA_MENU_LARGO).matches ? 'mediana' : 'computadora';
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [noLeidas, setNoLeidas] = useState(0);
-  const esCelular = useSyncExternalStore(suscribirCelular, esCelularAhora);
+  const items = user ? NAV_POR_ROL[user.rol] || [] : [];
+  const ancho = useSyncExternalStore(suscribirAncho, anchoAhora);
+  const esCelular = ancho === 'celular' || (ancho === 'mediana' && items.length > MAX_OPCIONES_MENU_CORTO);
   const [menuAbierto, setMenuAbierto] = useState(false);
   const abierto = esCelular && menuAbierto;
 
@@ -89,8 +101,6 @@ export default function Layout() {
     navigate('/login');
   };
 
-  const items = user ? NAV_POR_ROL[user.rol] || [] : [];
-
   const navegacion = (
     <nav className="nav">
       {items.map((item) => (
@@ -100,6 +110,7 @@ export default function Layout() {
           className={({ isActive }) => (isActive ? 'active' : '')}
           onClick={() => setMenuAbierto(false)}
         >
+          <item.icono size={18} aria-hidden="true" />
           {item.label}
           {item.conContador && noLeidas > 0 && <span className="contador">{noLeidas}</span>}
         </NavLink>
@@ -109,8 +120,11 @@ export default function Layout() {
 
   const bloqueUsuario = (
     <div className="user-menu">
-      <span>{user?.nombre} {user?.apellido} · {user?.rol}</span>
-      <button onClick={handleLogout}>Salir</button>
+      <span className="user-nombre">
+        <User size={18} aria-hidden="true" />
+        <span className="user-nombre-texto" title={`${user?.nombre} ${user?.apellido}`}>{user?.nombre} {user?.apellido}</span>
+      </span>
+      <button onClick={handleLogout}><LogOut size={18} aria-hidden="true" />Salir</button>
     </div>
   );
 
@@ -119,7 +133,10 @@ export default function Layout() {
       <header className="topbar">
         <div className="brand">
           <img src="/logo.png" alt="Logo Educar Para Transformar" className="brand-logo" />
-          <span>Sistema de Gestión · Educar Para Transformar</span>
+          <span className="brand-texto">
+            <span>Sistema de Gestión ·</span>
+            <span>Educar Para Transformar</span>
+          </span>
         </div>
         {user && !esCelular && navegacion}
         {user && !esCelular && bloqueUsuario}
