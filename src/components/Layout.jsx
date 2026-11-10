@@ -98,7 +98,7 @@ export default function Layout() {
     const cargar = () => apiFetch(`/api/cuotas/comprobantes?estado=${encodeURIComponent('En revisión')}`)
       .then((data) => !cancelado && setPendientes(data.length))
       .catch(() => {});
-    cargar();
+    void cargar();
     window.addEventListener(EVENTO_COMPROBANTES, cargar);
     return () => {
       cancelado = true;

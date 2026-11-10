@@ -83,6 +83,12 @@ const pedirEnRevision = () => apiFetch(`/api/cuotas/comprobantes?estado=${encode
 function Comprobantes({ alCambiarPendientes }) {
   const [comprobantes, setComprobantes] = useState(null);
   const [rechazo, setRechazo] = useState({ id: null, motivo: '' });
+  const motivoRef = useRef(null);
+
+  // Al tocar "Rechazar", el foco va al campo del motivo de esa fila.
+  useEffect(() => {
+    if (rechazo.id !== null) motivoRef.current?.focus();
+  }, [rechazo.id]);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState('');
   const [exito, setExito] = useState('');
@@ -169,16 +175,16 @@ function Comprobantes({ alCambiarPendientes }) {
                     {rechazo.id === c.id ? (
                       <form
                         className="form-actions"
-                        onSubmit={(e) => { e.preventDefault(); revisar(c, 'rechazar'); }}
+                        onSubmit={(e) => { e.preventDefault(); void revisar(c, 'rechazar'); }}
                       >
                         <input
+                          ref={motivoRef}
                           aria-label="Motivo del rechazo"
                           placeholder="Motivo del rechazo"
                           value={rechazo.motivo}
                           maxLength={500}
                           onChange={(e) => setRechazo({ id: c.id, motivo: e.target.value })}
                           required
-                          autoFocus
                         />
                         <button type="submit" className="btn-accion btn-baja" disabled={ocupado || !rechazo.motivo.trim()}>
                           <Ban size={16} aria-hidden="true" />Confirmar rechazo
