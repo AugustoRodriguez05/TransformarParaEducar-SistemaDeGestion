@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDb } from './db.js';
+import db, { initDb } from './db.js';
+import { cargarDatosDemo } from './demo.js';
 import {
   enviarDeudas, enviarRecordatorios, esDiaDeDeuda, esUltimoDiaHabil, feriadosDelPeriodo, hoyEnArgentina, periodoDeFecha
 } from './envios.js';
@@ -35,6 +36,16 @@ const baseLista = initDb().then(() => {
   console.log('Base de datos PostgreSQL inicializada correctamente.');
 }).catch((err) => {
   console.error('Error al inicializar la base de datos', err);
+});
+
+// Datos de ejemplo de cuotas y pagos: solo si todavía no hay ninguna cuota (ver demo.js).
+// Si fallan, se registra el error y el servidor sigue funcionando.
+baseLista.then(async () => {
+  try {
+    await cargarDatosDemo(db);
+  } catch (err) {
+    console.error('Error al cargar los datos de ejemplo', err);
+  }
 });
 
 app.use('/api/auth', authRouter);

@@ -2,9 +2,9 @@ import express from 'express';
 import dbPromise from '../db.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import {
-  TIPOS_CON_REFERENCIA, TIPOS_TARIFA, calcularCuota, numeroFactura, tarifasPorConcepto,
-  validarImporte, validarPeriodo, vencimientoDelPeriodo
+  TIPOS_CON_REFERENCIA, TIPOS_TARIFA, accionPrecio, validarImporte, validarPeriodo
 } from '../cuotas.js';
+import { generarCuotasDelPeriodo, tarifasVigentes } from '../generacion-cuotas.js';
 import { esFechaValida, limpiar } from '../validaciones.js';
 import { enviarDeudas, enviarRecordatorios } from '../envios.js';
 
@@ -14,19 +14,9 @@ router.use(authenticate);
 router.use(requireRole('administrador'));
 
 // ---------- Valores (tarifas) ----------
-// Cada cambio de valor se guarda como una tarifa nueva con su fecha de vigencia,
-// así las cuotas de períodos anteriores conservan el valor que tenían.
-
-// Última tarifa de cada concepto con vigencia hasta la fecha indicada (AAAA-MM-DD).
-async function tarifasVigentes(db, hasta) {
-  return db.all(
-    `SELECT DISTINCT ON (tipo, COALESCE(referencia_id, 0)) tipo, referencia_id, importe, vigente_desde
-     FROM tarifas
-     WHERE vigente_desde <= ?
-     ORDER BY tipo, COALESCE(referencia_id, 0), vigente_desde DESC, id DESC`,
-    hasta
-  );
-}
+// Cada precio se guarda con su fecha "vigente desde". Un precio con fecha posterior
+// al vigente se agrega y el anterior queda para generar los meses previos; la
+// pantalla muestra solo el vigente. Las cuotas ya generadas no cambian: cada ítem guarda su importe.
 
 // Valor actual de la cuota base, el comedor, cada deporte y cada recorrido
 // (el último cargado, con su fecha de vigencia; null si todavía no tiene).
@@ -51,51 +41,87 @@ router.get('/valores', async (req, res) => {
   res.json(await valores(db));
 });
 
-// Carga el valor de un concepto desde una fecha (por defecto, hoy). Si ya había
-// un valor para ese concepto con la misma fecha, se reemplaza.
-router.put('/valores', async (req, res) => {
-  const { tipo } = req.body;
-  if (!TIPOS_TARIFA.includes(tipo)) return res.status(400).json({ message: 'El concepto no es válido' });
+// AAAA-MM-DD → DD/MM/AAAA, para los mensajes.
+const fechaTexto = (fecha) => fecha.split('-').reverse().join('/');
 
-  const errorImporte = validarImporte(req.body.importe);
-  if (errorImporte) return res.status(400).json({ message: errorImporte });
+// Valida concepto, importe y fecha del cuerpo. Devuelve { status, message } si hay
+// un error, o { tipo, referenciaId, importe, vigenteDesde }.
+async function leerPrecio(db, body) {
+  const { tipo } = body;
+  if (!TIPOS_TARIFA.includes(tipo)) return { status: 400, message: 'El concepto no es válido' };
 
-  const vigenteDesde = limpiar(req.body.vigente_desde) || new Date().toLocaleDateString('sv-SE');
-  if (!esFechaValida(vigenteDesde)) return res.status(400).json({ message: 'Vigente desde: ingresá una fecha válida.' });
+  const errorImporte = validarImporte(body.importe);
+  if (errorImporte) return { status: 400, message: errorImporte };
 
-  const db = await dbPromise;
+  const vigenteDesde = limpiar(body.vigente_desde) || new Date().toLocaleDateString('sv-SE');
+  if (!esFechaValida(vigenteDesde)) return { status: 400, message: 'Vigente desde: ingresá una fecha válida.' };
+
   let referenciaId = null;
   if (TIPOS_CON_REFERENCIA.includes(tipo)) {
-    referenciaId = Number(req.body.referencia_id);
+    referenciaId = Number(body.referencia_id);
     const tabla = tipo === 'deporte' ? 'deportes' : 'recorridos_transporte';
     if (!Number.isInteger(referenciaId) || !(await db.get(`SELECT id FROM ${tabla} WHERE id = ?`, referenciaId))) {
-      return res.status(404).json({ message: tipo === 'deporte' ? 'Deporte no encontrado' : 'Recorrido no encontrado' });
+      return { status: 404, message: tipo === 'deporte' ? 'Deporte no encontrado' : 'Recorrido no encontrado' };
     }
   }
+  return { tipo, referenciaId, importe: Number(String(body.importe).trim()), vigenteDesde };
+}
 
-  const importe = Number(String(req.body.importe).trim());
-  const existente = await db.get(
-    'SELECT id FROM tarifas WHERE tipo = ? AND referencia_id IS NOT DISTINCT FROM ? AND vigente_desde = ?',
-    [tipo, referenciaId, vigenteDesde]
+// Filas de tarifas del concepto, de la vigencia más reciente a la más vieja. La primera
+// es el precio actual (el que muestra la tabla); las demás quedan para los meses previos.
+async function preciosDelConcepto(tx, tipo, referenciaId) {
+  return tx.all(
+    `SELECT id, vigente_desde FROM tarifas WHERE tipo = ? AND referencia_id IS NOT DISTINCT FROM ?
+     ORDER BY vigente_desde DESC, id DESC FOR UPDATE`,
+    [tipo, referenciaId]
   );
-  if (existente) {
-    await db.run('UPDATE tarifas SET importe = ? WHERE id = ?', [importe, existente.id]);
-  } else {
-    await db.run(
-      'INSERT INTO tarifas (tipo, referencia_id, importe, vigente_desde) VALUES (?, ?, ?, ?)',
-      [tipo, referenciaId, importe, vigenteDesde]
-    );
+}
+
+const errorConEstado = (status, message) => Object.assign(new Error(message), { status });
+
+// Guarda el precio de un concepto. Según su fecha frente a la del precio vigente:
+// posterior → precio nuevo (fila nueva; el anterior queda para los meses previos);
+// igual o anterior → corrige la fila del vigente (importe y fecha); sin precio → lo crea.
+// Devuelve los valores actualizados y la acción hecha ('nuevo', 'corregir' o 'crear').
+router.put('/valores', async (req, res) => {
+  const db = await dbPromise;
+  const precio = await leerPrecio(db, req.body);
+  if (precio.status) return res.status(precio.status).json({ message: precio.message });
+
+  let accion;
+  try {
+    accion = await db.transaccion(async (tx) => {
+      const filas = await preciosDelConcepto(tx, precio.tipo, precio.referenciaId);
+      const [actual, anterior] = filas;
+      const resultado = accionPrecio(actual ? actual.vigente_desde : null, precio.vigenteDesde);
+      if (resultado !== 'corregir') {
+        await tx.run(
+          'INSERT INTO tarifas (tipo, referencia_id, importe, vigente_desde) VALUES (?, ?, ?, ?)',
+          [precio.tipo, precio.referenciaId, precio.importe, precio.vigenteDesde]
+        );
+        return resultado;
+      }
+      if (filas.some((f) => f.id !== actual.id && f.vigente_desde === precio.vigenteDesde)) {
+        throw errorConEstado(409, `Ya hay otro precio de este concepto vigente desde el ${fechaTexto(precio.vigenteDesde)}. Elegí otra fecha.`);
+      }
+      // Si la fecha corregida quedara antes que la del precio anterior, el vigente pasaría a ser otro.
+      if (anterior && precio.vigenteDesde < anterior.vigente_desde) {
+        throw errorConEstado(400, `La fecha tiene que ser posterior al ${fechaTexto(anterior.vigente_desde)}, la del precio anterior.`);
+      }
+      await tx.run('UPDATE tarifas SET importe = ?, vigente_desde = ? WHERE id = ?', [precio.importe, precio.vigenteDesde, actual.id]);
+      return resultado;
+    });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ message: err.message });
+    throw err;
   }
-  res.json(await valores(db));
+  res.json({ ...(await valores(db)), accion });
 });
 
 // ---------- Generación de cuotas ----------
 
-// Por cada alumno activo: cuota del período con sus ítems (cuota base, cada
-// deporte, recorrido y comedor con inscripción activa), vencimiento el día 10
-// y factura con número correlativo. Los alumnos que ya tienen la cuota del
-// período se saltean. Todo en una transacción: si falta el valor de algún
-// concepto, no se genera ninguna cuota.
+// Genera las cuotas del período (ver generacion-cuotas.js). Todo en una
+// transacción: si falta el valor de algún concepto, no se genera ninguna cuota.
 router.post('/generar', async (req, res) => {
   const periodo = limpiar(req.body.periodo);
   const errorPeriodo = validarPeriodo(periodo);
@@ -103,66 +129,7 @@ router.post('/generar', async (req, res) => {
 
   const db = await dbPromise;
   try {
-    const resultado = await db.transaccion(async (tx) => {
-      // Que dos generaciones simultáneas no repitan cuotas ni números de factura.
-      await tx.run('LOCK TABLE cuotas, items_cuota, facturas IN SHARE ROW EXCLUSIVE MODE');
-
-      const alumnos = await tx.all("SELECT id FROM alumnos WHERE estado = 'Activo' ORDER BY apellido, nombre, id");
-      const conCuota = new Set((await tx.all('SELECT alumno_id FROM cuotas WHERE periodo = ?', periodo)).map((c) => c.alumno_id));
-      const pendientes = alumnos.filter((a) => !conCuota.has(a.id));
-
-      // Tarifas vigentes en el período (cargadas con fecha hasta el fin del mes).
-      const tarifas = tarifasPorConcepto(await tarifasVigentes(tx, `${periodo}-31`));
-      const deportes = await tx.all(
-        `SELECT i.alumno_id, d.id, d.nombre FROM inscripciones_deportivas i
-         JOIN deportes d ON d.id = i.deporte_id
-         WHERE i.estado = 'Activa'
-         ORDER BY d.nombre, d.id`
-      );
-      const recorridos = await tx.all(
-        `SELECT i.alumno_id, r.id, r.nombre FROM inscripciones_transporte i
-         JOIN recorridos_transporte r ON r.id = i.recorrido_id
-         WHERE i.estado = 'Activa'`
-      );
-      const comedor = new Set((await tx.all("SELECT alumno_id FROM inscripciones_comedor WHERE estado = 'Activa'")).map((c) => c.alumno_id));
-
-      const cuotas = pendientes.map((a) => ({
-        alumnoId: a.id,
-        ...calcularCuota({
-          tarifas,
-          deportes: deportes.filter((d) => d.alumno_id === a.id),
-          recorrido: recorridos.find((r) => r.alumno_id === a.id) || null,
-          comedor: comedor.has(a.id)
-        })
-      }));
-      const faltantes = [...new Set(cuotas.flatMap((c) => c.faltantes))];
-      if (faltantes.length > 0) {
-        throw Object.assign(new Error(`Falta cargar el valor de: ${faltantes.join(', ')}`), { status: 400 });
-      }
-
-      const { ultimo } = await tx.get(
-        "SELECT MAX(CAST(SUBSTRING(numero FROM 3) AS INTEGER)) AS ultimo FROM facturas WHERE numero ~ '^F-[0-9]+$'"
-      );
-      let correlativo = ultimo || 0;
-      for (const cuota of cuotas) {
-        const cuotaId = (await tx.run(
-          'INSERT INTO cuotas (alumno_id, periodo, vencimiento, total) VALUES (?, ?, ?, ?)',
-          [cuota.alumnoId, periodo, vencimientoDelPeriodo(periodo), cuota.total]
-        )).lastID;
-        for (const item of cuota.items) {
-          await tx.run(
-            'INSERT INTO items_cuota (cuota_id, concepto, referencia_id, descripcion, importe) VALUES (?, ?, ?, ?, ?)',
-            [cuotaId, item.concepto, item.referencia_id, item.descripcion, item.importe]
-          );
-        }
-        correlativo += 1;
-        await tx.run(
-          'INSERT INTO facturas (cuota_id, numero, total) VALUES (?, ?, ?)',
-          [cuotaId, numeroFactura(correlativo), cuota.total]
-        );
-      }
-      return { periodo, creadas: cuotas.length, salteadas: alumnos.length - pendientes.length };
-    });
+    const resultado = await db.transaccion((tx) => generarCuotasDelPeriodo(tx, periodo));
     res.status(201).json(resultado);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ message: err.message });

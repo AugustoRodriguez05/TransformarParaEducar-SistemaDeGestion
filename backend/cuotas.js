@@ -97,3 +97,14 @@ export function estadoSegunComprobantes(total, importes) {
     ? { estadoCuota: 'Pagada', itemsPagados: true }
     : { estadoCuota: 'Pago parcial', itemsPagados: false };
 }
+
+/**
+ * Qué hacer al guardar un precio con fecha "fecha" (AAAA-MM-DD), frente a la fecha del
+ * precio vigente del concepto (null si todavía no tiene): 'crear' si no tiene precio,
+ * 'nuevo' si la fecha es posterior (se agrega y el anterior queda para los meses previos)
+ * o 'corregir' si es igual o anterior (se modifica el vigente).
+ */
+export function accionPrecio(vigenteActual, fecha) {
+  if (!vigenteActual) return 'crear';
+  return fecha > vigenteActual ? 'nuevo' : 'corregir';
+}
