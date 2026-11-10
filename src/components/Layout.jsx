@@ -4,7 +4,7 @@ import {
   BarChart3, Bell, BookOpen, Calendar, CreditCard, GraduationCap, Home, LogOut, Menu, Presentation, Settings, User, Users, X
 } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
-import { apiFetch } from '../api';
+import { EVENTO_COMPROBANTES, apiFetch } from '../api';
 
 const NAV_POR_ROL = {
   administrador: [
@@ -13,7 +13,7 @@ const NAV_POR_ROL = {
     { to: '/padres', label: 'Padres', icono: Users },
     { to: '/turnos', label: 'Turnos', icono: Calendar },
     { to: '/reportes', label: 'Reportes', icono: BarChart3 },
-    { to: '/cuotas', label: 'Cuotas', icono: CreditCard },
+    { to: '/cuotas', label: 'Cuotas', icono: CreditCard, conPendientes: true },
     { to: '/configuracion', label: 'Configuración', icono: Settings }
   ],
   profesor: [
@@ -87,6 +87,25 @@ export default function Layout() {
     return () => { cancelado = true; };
   }, [pathname, tieneNotificaciones]);
 
+  // Administrador: comprobantes en revisión, junto a "Cuotas". Se actualiza al cambiar
+  // de página y cuando la pantalla de Cuotas aprueba o rechaza uno.
+  const [pendientes, setPendientes] = useState(0);
+  const esAdministrador = user?.rol === 'administrador';
+
+  useEffect(() => {
+    if (!esAdministrador) return;
+    let cancelado = false;
+    const cargar = () => apiFetch(`/api/cuotas/comprobantes?estado=${encodeURIComponent('En revisión')}`)
+      .then((data) => !cancelado && setPendientes(data.length))
+      .catch(() => {});
+    cargar();
+    window.addEventListener(EVENTO_COMPROBANTES, cargar);
+    return () => {
+      cancelado = true;
+      window.removeEventListener(EVENTO_COMPROBANTES, cargar);
+    };
+  }, [pathname, esAdministrador]);
+
   // El menú desplegado se cierra con Esc.
   useEffect(() => {
     if (!abierto) return;
@@ -113,6 +132,9 @@ export default function Layout() {
           <item.icono size={18} aria-hidden="true" />
           {item.label}
           {item.conContador && noLeidas > 0 && <span className="contador">{noLeidas}</span>}
+          {item.conPendientes && esAdministrador && pendientes > 0 && (
+            <span className="contador" title="Comprobantes por revisar">{pendientes}</span>
+          )}
         </NavLink>
       ))}
     </nav>

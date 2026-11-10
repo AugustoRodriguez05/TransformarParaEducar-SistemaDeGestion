@@ -346,6 +346,9 @@ export async function initDb() {
     ALTER TABLE profesores ADD COLUMN IF NOT EXISTS telefono TEXT;
     ALTER TABLE deportes ADD COLUMN IF NOT EXISTS nivel TEXT CHECK (nivel IN (${SQL_NIVELES}));
     ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS usuario_id INTEGER UNIQUE REFERENCES usuarios(id);
+    ALTER TABLE comprobantes_pago ADD COLUMN IF NOT EXISTS estado TEXT NOT NULL DEFAULT 'Aprobado'
+      CHECK (estado IN ('En revisión', 'Aprobado', 'Rechazado'));
+    ALTER TABLE comprobantes_pago ADD COLUMN IF NOT EXISTS motivo_rechazo TEXT;
   `);
 
   // Rol alumno: el rol es TEXT con un CHECK (no un tipo enum), así que el

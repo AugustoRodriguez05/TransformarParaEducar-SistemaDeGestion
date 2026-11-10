@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  AlertTriangle, BadgeCheck, Bus, Calendar, DollarSign, FilePlus, Hash, Mail, Pencil, Receipt, Save, Search, Send, Table,
-  Tags, User, UtensilsCrossed, Volleyball, Wallet, X
+  AlertTriangle, BadgeCheck, Ban, Bus, Calendar, Check, ClipboardCheck, DollarSign, Eye, FilePlus, Hash, Mail, Pencil,
+  Receipt, Save, Search, Send, Table, Tags, User, Users, UtensilsCrossed, Volleyball, Wallet, X
 } from 'lucide-react';
-import { apiFetch } from '../api';
+import { EVENTO_COMPROBANTES, apiFetch } from '../api';
 import ThIcono from '../components/ThIcono';
 import TituloSeccion from '../components/TituloSeccion';
 import { TODOS_LOS_NIVELES, textoGrupo } from '../deportes';
 import { formatearFecha, hoyISO } from '../fecha';
 
 const PESTANAS = [
+  { id: 'comprobantes', etiqueta: 'Comprobantes por revisar', icono: ClipboardCheck },
   { id: 'valores', etiqueta: 'Valores', icono: Tags },
   { id: 'generar', etiqueta: 'Generar cuotas', icono: FilePlus },
   { id: 'facturas', etiqueta: 'Facturas y comprobantes', icono: Receipt },
@@ -23,7 +24,9 @@ const formatearImporte = (importe) =>
 const periodoActual = () => hoyISO().slice(0, 7);
 
 export default function Cuotas() {
-  const [pestana, setPestana] = useState('valores');
+  const [pestana, setPestana] = useState('comprobantes');
+  // Cantidad de comprobantes en revisión (la informa la pestaña al cargar la lista).
+  const [pendientes, setPendientes] = useState(0);
 
   return (
     <div>
@@ -40,15 +43,171 @@ export default function Cuotas() {
             onClick={() => setPestana(id)}
           >
             <Icono size={18} aria-hidden="true" />{etiqueta}
+            {id === 'comprobantes' && pendientes > 0 && <span className="contador">{pendientes}</span>}
           </button>
         ))}
       </div>
 
+      {pestana === 'comprobantes' && <Comprobantes alCambiarPendientes={setPendientes} />}
       {pestana === 'valores' && <Valores />}
       {pestana === 'generar' && <Generar />}
       {pestana === 'facturas' && <Facturas />}
       {pestana === 'envios' && <Envios />}
     </div>
+  );
+}
+
+// ---------- Comprobantes por revisar ----------
+
+// Estado del comprobante → clase de badge existente.
+const BADGE_COMPROBANTE = { 'En revisión': 'pendiente', Aprobado: 'confirmado', Rechazado: 'cancelado' };
+
+// Abre el archivo del comprobante en una pestaña nueva. La pestaña se abre antes de
+// pedir el archivo para que el navegador no la bloquee como ventana emergente.
+async function verArchivo(id) {
+  const ventana = window.open('', '_blank');
+  try {
+    const archivo = await apiFetch(`/api/pagos/comprobantes/${id}/archivo`, { respuesta: 'blob' });
+    const url = URL.createObjectURL(archivo);
+    if (ventana) ventana.location.href = url;
+    else window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+  } catch (err) {
+    ventana?.close();
+    throw err;
+  }
+}
+
+const pedirEnRevision = () => apiFetch(`/api/cuotas/comprobantes?estado=${encodeURIComponent('En revisión')}`);
+
+function Comprobantes({ alCambiarPendientes }) {
+  const [comprobantes, setComprobantes] = useState(null);
+  const [rechazo, setRechazo] = useState({ id: null, motivo: '' });
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState('');
+  const [exito, setExito] = useState('');
+
+  const cargar = async () => {
+    const lista = await pedirEnRevision();
+    setComprobantes(lista);
+    alCambiarPendientes(lista.length);
+  };
+
+  useEffect(() => {
+    let cancelado = false;
+    pedirEnRevision()
+      .then((lista) => {
+        if (cancelado) return;
+        setComprobantes(lista);
+        alCambiarPendientes(lista.length);
+      })
+      .catch((err) => !cancelado && setError(err.message));
+    return () => { cancelado = true; };
+  }, [alCambiarPendientes]);
+
+  const abrir = async (id) => {
+    setError('');
+    try {
+      await verArchivo(id);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // accion: 'aprobar' o 'rechazar' (con el motivo escrito en la fila).
+  const revisar = async (c, accion) => {
+    setError('');
+    setExito('');
+    setOcupado(true);
+    try {
+      await apiFetch(`/api/cuotas/comprobantes/${c.id}/${accion}`, {
+        method: 'POST',
+        body: JSON.stringify(accion === 'rechazar' ? { motivo: rechazo.motivo } : {})
+      });
+      setExito(`Comprobante ${c.numero_operacion} de la factura ${c.factura} ${accion === 'aprobar' ? 'aprobado' : 'rechazado'}.`);
+      setRechazo({ id: null, motivo: '' });
+      window.dispatchEvent(new Event(EVENTO_COMPROBANTES));
+      await cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOcupado(false);
+    }
+  };
+
+  return (
+    <>
+      {exito && <p className="success">{exito}</p>}
+      {error && <p className="error">{error}</p>}
+
+      {comprobantes && (comprobantes.length === 0 ? <p>No hay comprobantes por revisar.</p> : (
+        <div className="tabla-scroll">
+          <table className="data-table tabla-tarjetas">
+            <thead>
+              <tr>
+                <ThIcono icono={User}>Alumno</ThIcono>
+                <ThIcono icono={Users}>Padre</ThIcono>
+                <ThIcono icono={Receipt}>Factura</ThIcono>
+                <ThIcono icono={DollarSign}>Importe</ThIcono>
+                <ThIcono icono={Calendar}>Transferencia</ThIcono>
+                <ThIcono icono={Hash}>N.º de operación</ThIcono>
+                <ThIcono icono={Calendar}>Cargado</ThIcono>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {comprobantes.map((c) => (
+                <tr key={c.id}>
+                  <td data-label="Alumno">{c.alumno} ({c.legajo})</td>
+                  <td data-label="Padre">{c.padre}</td>
+                  <td data-label="Factura">{c.factura} ({c.periodo})</td>
+                  <td data-label="Importe">{formatearImporte(c.importe)}</td>
+                  <td data-label="Transferencia">{formatearFecha(c.fecha_transferencia)}</td>
+                  <td data-label="N.º de operación">{c.numero_operacion}</td>
+                  <td data-label="Cargado">{formatearFechaHora(c.fecha_carga)}</td>
+                  <td data-label="Acciones">
+                    {rechazo.id === c.id ? (
+                      <form
+                        className="form-actions"
+                        onSubmit={(e) => { e.preventDefault(); revisar(c, 'rechazar'); }}
+                      >
+                        <input
+                          aria-label="Motivo del rechazo"
+                          placeholder="Motivo del rechazo"
+                          value={rechazo.motivo}
+                          maxLength={500}
+                          onChange={(e) => setRechazo({ id: c.id, motivo: e.target.value })}
+                          required
+                          autoFocus
+                        />
+                        <button type="submit" className="btn-accion btn-baja" disabled={ocupado || !rechazo.motivo.trim()}>
+                          <Ban size={16} aria-hidden="true" />Confirmar rechazo
+                        </button>
+                        <button type="button" className="btn-accion btn-ver" onClick={() => setRechazo({ id: null, motivo: '' })}>
+                          <X size={16} aria-hidden="true" />Cancelar
+                        </button>
+                      </form>
+                    ) : (
+                      <div className="form-actions">
+                        <button type="button" className="btn-accion btn-ver" onClick={() => abrir(c.id)}>
+                          <Eye size={16} aria-hidden="true" />Ver archivo
+                        </button>
+                        <button type="button" className="btn-accion btn-confirmar" disabled={ocupado} onClick={() => revisar(c, 'aprobar')}>
+                          <Check size={16} aria-hidden="true" />Aprobar
+                        </button>
+                        <button type="button" className="btn-accion btn-baja" disabled={ocupado} onClick={() => setRechazo({ id: c.id, motivo: '' })}>
+                          <Ban size={16} aria-hidden="true" />Rechazar
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -330,8 +489,10 @@ function Facturas() {
                     {f.comprobantes.length === 0 ? '—' : (
                       <ul className="ficha-lista">
                         {f.comprobantes.map((c) => (
-                          <li key={c.numero_operacion}>
-                            {formatearImporte(c.importe)} — {formatearFecha(c.fecha_transferencia)} — Op. {c.numero_operacion}
+                          <li key={c.id}>
+                            {formatearImporte(c.importe)} — {formatearFecha(c.fecha_transferencia)} — Op. {c.numero_operacion}{' '}
+                            <span className={`badge ${BADGE_COMPROBANTE[c.estado]}`}>{c.estado}</span>
+                            {c.estado === 'Rechazado' && c.motivo_rechazo && ` (Motivo: ${c.motivo_rechazo})`}
                           </li>
                         ))}
                       </ul>

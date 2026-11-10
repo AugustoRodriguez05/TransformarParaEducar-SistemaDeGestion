@@ -7,6 +7,9 @@ import {
   accionPrecio,
   calcularCuota,
   estadoSegunComprobantes,
+  itemsCubiertos,
+  numeroOperacionOriginal,
+  numeroOperacionRechazado,
   numeroFactura,
   numeroOrdenPago,
   tarifasPorConcepto,
@@ -222,5 +225,67 @@ describe('accionPrecio', () => {
   it('con la misma fecha o una anterior, corrige el vigente', () => {
     expect(accionPrecio('2026-08-01', '2026-08-01')).toBe('corregir')
     expect(accionPrecio('2026-08-01', '2026-07-31')).toBe('corregir')
+  })
+})
+
+describe('itemsCubiertos', () => {
+  const informado = (id, importe) => ({ id, importe, estado: 'Pago informado' })
+  const ORDENES = [
+    { items: [informado(1, '42000.00'), informado(2, '6500.00')] },
+    { items: [informado(3, '18000.00')] },
+  ]
+
+  it('sin comprobantes aprobados no cubre ningún ítem', () => {
+    expect(itemsCubiertos({ importes: [], ordenes: ORDENES })).toEqual([])
+  })
+
+  it('cubre los ítems de la primera orden cuando el aprobado alcanza justo', () => {
+    expect(itemsCubiertos({ importes: ['48500.00'], ordenes: ORDENES })).toEqual([1, 2])
+  })
+
+  it('suma varios comprobantes aprobados y sigue con la orden siguiente', () => {
+    expect(itemsCubiertos({ importes: [48500, '18000'], ordenes: ORDENES })).toEqual([1, 2, 3])
+  })
+
+  it('corta en el primer ítem que no alcanza, aunque uno posterior entre', () => {
+    // 45000 cubre el ítem 1 (42000); quedan 3000: no alcanza para el 2 (6500) y no se salta al 3.
+    expect(itemsCubiertos({ importes: [45000], ordenes: ORDENES })).toEqual([1])
+    expect(itemsCubiertos({ importes: [41999.99], ordenes: ORDENES })).toEqual([])
+  })
+
+  it('descuenta lo que ya está pagado en la cuota', () => {
+    // 60000 aprobados, de los que 42000 ya cubrieron un ítem Pagado: quedan 18000.
+    const ordenes = [{ items: [informado(2, 6500), informado(3, 18000)] }]
+    expect(itemsCubiertos({ importes: [60000], pagados: [42000], ordenes })).toEqual([2])
+  })
+
+  it('ignora los ítems que no están en Pago informado y los repetidos en otra orden', () => {
+    const ordenes = [
+      { items: [{ id: 1, importe: 42000, estado: 'Pagado' }, { id: 2, importe: 6500, estado: 'Pendiente' }] },
+      { items: [informado(3, 18000)] },
+      { items: [informado(3, 18000), informado(4, 7000)] },
+    ]
+    expect(itemsCubiertos({ importes: [25000], ordenes })).toEqual([3, 4])
+  })
+
+  it('suma en centavos, sin errores de redondeo', () => {
+    const ordenes = [{ items: [informado(1, 0.1), informado(2, 0.2)] }]
+    expect(itemsCubiertos({ importes: [0.3], ordenes })).toEqual([1, 2])
+  })
+})
+
+describe('número de operación de un comprobante rechazado', () => {
+  it('agrega el sufijo con el id del comprobante', () => {
+    expect(numeroOperacionRechazado('123456', 42)).toBe('123456-RECH-42')
+  })
+
+  it('el original se recupera quitando el sufijo', () => {
+    expect(numeroOperacionOriginal(numeroOperacionRechazado('AB-99', 7), 7)).toBe('AB-99')
+  })
+
+  it('sin sufijo, o con el id de otro comprobante, queda igual', () => {
+    expect(numeroOperacionOriginal('123456', 42)).toBe('123456')
+    expect(numeroOperacionOriginal('123456-RECH-41', 42)).toBe('123456-RECH-41')
+    expect(numeroOperacionOriginal('123456-RECH-142', 42)).toBe('123456-RECH-142')
   })
 })
