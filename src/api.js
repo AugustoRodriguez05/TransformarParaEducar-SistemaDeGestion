@@ -57,14 +57,19 @@ export async function apiDownload(path, nombreArchivo) {
   URL.revokeObjectURL(url);
 }
 
+// Evento de window que avisa que se aprobó o rechazó un comprobante (el menú actualiza su contador).
+export const EVENTO_COMPROBANTES = 'comprobantes-revisados';
+
+// respuesta: 'json' (por defecto) o 'blob' para archivos (por ejemplo, un comprobante).
 export async function apiFetch(path, options = {}) {
+  const { respuesta = 'json', ...opciones } = options;
   const user = getStoredUser();
-  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  const headers = { 'Content-Type': 'application/json', ...(opciones.headers || {}) };
   if (user) {
     headers.Authorization = `Bearer ${user.token}`;
   }
 
-  const res = await conectar(path, { ...options, headers });
+  const res = await conectar(path, { ...opciones, headers });
 
   if (!res.ok) {
     let message = `Error ${res.status}`;
@@ -78,5 +83,5 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (res.status === 204) return null;
-  return res.json();
+  return respuesta === 'blob' ? res.blob() : res.json();
 }

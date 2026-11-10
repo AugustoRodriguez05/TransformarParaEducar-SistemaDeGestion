@@ -108,3 +108,43 @@ export function accionPrecio(vigenteActual, fecha) {
   if (!vigenteActual) return 'crear';
   return fecha > vigenteActual ? 'nuevo' : 'corregir';
 }
+
+/**
+ * Ítems en 'Pago informado' que quedan cubiertos por los comprobantes aprobados de una factura.
+ * importes: importe de cada comprobante que se toma en cuenta (pesos, número o texto).
+ * pagados: importe de cada ítem de la cuota que ya está 'Pagado' (eso ya se cubrió antes).
+ * ordenes: órdenes de pago de la factura en orden ([{ items: [{ id, importe, estado }] }]).
+ * Se recorren las órdenes y sus ítems en orden y se corta en el primero que no alcanza,
+ * para que una orden posterior no se cobre antes que una anterior. Devuelve los ids cubiertos.
+ */
+export function itemsCubiertos({ importes, pagados = [], ordenes }) {
+  const sumaCentavos = (lista) => lista.reduce((suma, importe) => suma + aCentavos(importe), 0);
+  let disponible = sumaCentavos(importes) - sumaCentavos(pagados);
+  const cubiertos = [];
+  const vistos = new Set();
+  for (const orden of ordenes) {
+    for (const item of orden.items) {
+      if (item.estado !== 'Pago informado' || vistos.has(item.id)) continue;
+      vistos.add(item.id);
+      const importe = aCentavos(item.importe);
+      if (importe > disponible) return cubiertos;
+      disponible -= importe;
+      cubiertos.push(item.id);
+    }
+  }
+  return cubiertos;
+}
+
+// Al rechazar un comprobante su número de operación se cambia a "<número>-RECH-<id>",
+// para que el padre pueda volver a cargarlo con el mismo número (es único en la tabla).
+export function numeroOperacionRechazado(numero, id) {
+  return `${numero}-RECH-${id}`;
+}
+
+// Número de operación tal como lo cargó el padre: sin el sufijo "-RECH-<id>" del rechazo.
+// Solo se quita si el id del sufijo es el del comprobante, así un número que justo
+// termine parecido no se recorta.
+export function numeroOperacionOriginal(numero, id) {
+  const sufijo = `-RECH-${id}`;
+  return numero.endsWith(sufijo) ? numero.slice(0, -sufijo.length) : numero;
+}

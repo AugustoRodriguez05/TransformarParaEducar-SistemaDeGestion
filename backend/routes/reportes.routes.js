@@ -268,7 +268,7 @@ const aCentavos = (importe) => Math.round(Number(importe) * 100);
 const formatearImporte = (centavos) =>
   `$ ${(centavos / 100).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-// 1. Ingresos: comprobantes de pago con fecha de transferencia en el rango, y total general.
+// 1. Ingresos: comprobantes de pago aprobados con fecha de transferencia en el rango, y total general.
 async function reporteIngresos(db, filtros) {
   const error = validarRangoFechas(filtros);
   if (error) return faltaFiltro(error);
@@ -280,7 +280,7 @@ async function reporteIngresos(db, filtros) {
      JOIN facturas f ON f.id = cp.factura_id
      JOIN cuotas c ON c.id = f.cuota_id
      JOIN alumnos a ON a.id = c.alumno_id
-     WHERE cp.fecha_transferencia BETWEEN ? AND ?
+     WHERE cp.estado = 'Aprobado' AND cp.fecha_transferencia BETWEEN ? AND ?
      ORDER BY cp.fecha_transferencia, cp.id`,
     [filtros.desde, filtros.hasta]
   );
