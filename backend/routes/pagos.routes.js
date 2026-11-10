@@ -104,11 +104,13 @@ router.param('alumnoId', async (req, res, next, valor) => {
 
 // ---------- Consultas de un hijo ----------
 
-// Cuotas del hijo, de la más reciente a la más antigua, con su factura y sus ítems.
+// Cuotas del hijo, de la más reciente a la más antigua, con su factura, sus ítems,
+// lo pagado (suma de los comprobantes de la factura) y el saldo (total - pagado, mínimo 0).
 router.get('/hijos/:alumnoId/cuotas', async (req, res) => {
   const db = await dbPromise;
   const cuotas = await db.all(
-    `SELECT c.id, c.periodo, c.vencimiento, c.total, c.estado, f.id as factura_id, f.numero as factura_numero
+    `SELECT c.id, c.periodo, c.vencimiento, c.total, c.estado, f.id as factura_id, f.numero as factura_numero,
+            COALESCE((SELECT SUM(cp.importe) FROM comprobantes_pago cp WHERE cp.factura_id = f.id), 0) as pagado
      FROM cuotas c LEFT JOIN facturas f ON f.cuota_id = c.id
      WHERE c.alumno_id = ?
      ORDER BY c.periodo DESC, c.id DESC`,
@@ -119,8 +121,10 @@ router.get('/hijos/:alumnoId/cuotas', async (req, res) => {
      WHERE cuota_id = ANY(?::int[]) ORDER BY id`,
     [cuotas.map((c) => c.id)]
   );
-  res.json(cuotas.map(({ factura_id: facturaId, factura_numero: facturaNumero, ...c }) => ({
+  res.json(cuotas.map(({ factura_id: facturaId, factura_numero: facturaNumero, pagado, ...c }) => ({
     ...c,
+    pagado: aCentavos(pagado) / 100,
+    saldo: Math.max(0, aCentavos(c.total) - aCentavos(pagado)) / 100,
     factura: facturaId ? { id: facturaId, numero: facturaNumero } : null,
     items: items.filter((i) => i.cuota_id === c.id).map((i) => ({
       id: i.id, concepto: i.concepto, descripcion: i.descripcion, importe: i.importe, estado: i.estado

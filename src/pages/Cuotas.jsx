@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle, BadgeCheck, Bus, Calendar, DollarSign, FilePlus, Hash, Mail, Pencil, Receipt, Save, Search, Send, Table,
-  Tags, User, UtensilsCrossed, Volleyball, Wallet
+  Tags, User, UtensilsCrossed, Volleyball, Wallet, X
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import ThIcono from '../components/ThIcono';
@@ -85,7 +85,8 @@ function Valores() {
   const [valores, setValores] = useState(null);
   const [form, setForm] = useState({ ...VALOR_VACIO, vigente_desde: hoyISO() });
   const [error, setError] = useState('');
-  const importeRef = useRef(null);
+  const [exito, setExito] = useState('');
+  const fechaRef = useRef(null);
 
   useEffect(() => {
     let cancelado = false;
@@ -98,20 +99,42 @@ function Valores() {
   const lista = valores ? conceptos(valores) : [];
   const handleChange = (campo) => (e) => setForm({ ...form, [campo]: e.target.value });
 
-  // Carga el concepto en el formulario con su valor actual, para guardar uno nuevo desde hoy.
-  const editar = (concepto) => {
-    setForm({ clave: concepto.clave, importe: concepto.tarifa ? String(concepto.tarifa.importe) : '', vigente_desde: hoyISO() });
+  const conceptoElegido = lista.find((c) => c.clave === form.clave);
+
+  const cancelar = () => {
+    setForm({ ...VALOR_VACIO, vigente_desde: hoyISO() });
     setError('');
-    importeRef.current?.focus();
+  };
+
+  // Carga el precio vigente del concepto (importe y fecha reales; si no tiene, importe
+  // vacío y la fecha de hoy). El foco va a "Vigente desde": con una fecha posterior se
+  // guarda como precio nuevo, con la misma o una anterior se corrige el vigente.
+  const editar = (concepto) => {
+    setForm({
+      clave: concepto.clave,
+      importe: concepto.tarifa ? String(concepto.tarifa.importe) : '',
+      vigente_desde: concepto.tarifa ? concepto.tarifa.vigente_desde : hoyISO()
+    });
+    setError('');
+    setExito('');
+    fechaRef.current?.focus();
+  };
+
+  // Elegir un concepto en la lista es lo mismo que tocar su "Editar".
+  const elegirConcepto = (e) => {
+    const concepto = lista.find((c) => c.clave === e.target.value);
+    if (concepto) editar(concepto);
+    else cancelar();
   };
 
   const guardar = async (e) => {
     e.preventDefault();
     setError('');
-    const concepto = lista.find((c) => c.clave === form.clave);
+    setExito('');
+    const concepto = conceptoElegido;
     if (!concepto) return;
     try {
-      setValores(await apiFetch('/api/cuotas/valores', {
+      const { accion, ...actualizados } = await apiFetch('/api/cuotas/valores', {
         method: 'PUT',
         body: JSON.stringify({
           tipo: concepto.tipo,
@@ -119,7 +142,9 @@ function Valores() {
           importe: form.importe,
           vigente_desde: form.vigente_desde
         })
-      }));
+      });
+      setValores(actualizados);
+      setExito(accion === 'corregir' ? 'Precio corregido' : `Nuevo precio desde ${formatearFecha(form.vigente_desde)}`);
       setForm({ ...VALOR_VACIO, vigente_desde: hoyISO() });
     } catch (err) {
       setError(err.message);
@@ -129,29 +154,36 @@ function Valores() {
   return (
     <>
       <form className="card form-card" onSubmit={guardar}>
+        {conceptoElegido && (
+          <p>Editando: <strong>{conceptoElegido.nombre}</strong></p>
+        )}
         <div className="form-grid">
           <label>
             Concepto
-            <select value={form.clave} onChange={handleChange('clave')} required>
+            <select value={form.clave} onChange={elegirConcepto} required>
               <option value="">Seleccionar…</option>
               {lista.map((c) => <option key={c.clave} value={c.clave}>{c.nombre}</option>)}
             </select>
           </label>
           <label>
             Importe
-            <input ref={importeRef} inputMode="decimal" value={form.importe} onChange={handleChange('importe')} required />
+            <input inputMode="decimal" value={form.importe} onChange={handleChange('importe')} required />
           </label>
           <label>
             Vigente desde
-            <input type="date" value={form.vigente_desde} onChange={handleChange('vigente_desde')} required />
+            <input ref={fechaRef} type="date" value={form.vigente_desde} onChange={handleChange('vigente_desde')} required />
           </label>
         </div>
         <div className="form-actions">
           <button type="submit"><Save size={18} aria-hidden="true" />Guardar valor</button>
+          {conceptoElegido && (
+            <button type="button" className="secondary" onClick={cancelar}><X size={18} aria-hidden="true" />Cancelar</button>
+          )}
         </div>
       </form>
 
       {error && <p className="error">{error}</p>}
+      {exito && <p className="success">{exito}</p>}
 
       {valores && (
         <div className="tabla-scroll">

@@ -4,6 +4,7 @@ import {
   IMPORTE_MAXIMO,
   TIPOS_CON_REFERENCIA,
   TIPOS_TARIFA,
+  accionPrecio,
   calcularCuota,
   estadoSegunComprobantes,
   numeroFactura,
@@ -205,5 +206,21 @@ describe('estadoSegunComprobantes', () => {
   it('suma en centavos, sin errores de redondeo', () => {
     // 0.1 + 0.2 en punto flotante da 0.30000000000000004
     expect(estadoSegunComprobantes('0.30', ['0.10', '0.20'])).toEqual({ estadoCuota: 'Pagada', itemsPagados: true })
+  })
+})
+
+describe('accionPrecio', () => {
+  it('sin precio vigente, lo crea', () => {
+    expect(accionPrecio(null, '2026-08-01')).toBe('crear')
+  })
+
+  it('con fecha posterior a la del vigente, es un precio nuevo', () => {
+    expect(accionPrecio('2026-08-01', '2026-08-02')).toBe('nuevo')
+    expect(accionPrecio('2026-08-01', '2027-01-01')).toBe('nuevo')
+  })
+
+  it('con la misma fecha o una anterior, corrige el vigente', () => {
+    expect(accionPrecio('2026-08-01', '2026-08-01')).toBe('corregir')
+    expect(accionPrecio('2026-08-01', '2026-07-31')).toBe('corregir')
   })
 })
