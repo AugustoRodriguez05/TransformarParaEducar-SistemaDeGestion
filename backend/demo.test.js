@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { IMPORTES_DEMO, PERIODOS_DEMO, importeDemo, pagoDemo } from './demo.js'
+import { IMPORTES_DEMO, PERIODOS_DEMO, accionDemo, importeDemo, pagoDemo } from './demo.js'
 
 describe('PERIODOS_DEMO', () => {
   it('va de agosto a noviembre de 2026', () => {
@@ -46,5 +46,19 @@ describe('pagoDemo', () => {
 
   it('una cuota en 0 no lleva comprobante', () => {
     expect(pagoDemo('2026-08', 0).pago).toBeNull()
+  })
+})
+
+describe('accionDemo', () => {
+  it('sin cuotas carga todo', () => {
+    expect(accionDemo({ hayCuotas: false, hayComprobantes: false })).toBe('todo')
+  })
+
+  it('con cuotas y sin comprobantes carga solo los pagos', () => {
+    expect(accionDemo({ hayCuotas: true, hayComprobantes: false })).toBe('pagos')
+  })
+
+  it('con algún comprobante no hace nada', () => {
+    expect(accionDemo({ hayCuotas: true, hayComprobantes: true })).toBeNull()
   })
 })
