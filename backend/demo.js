@@ -1,6 +1,7 @@
 // Datos de ejemplo para mostrar el módulo de cuotas: si todavía no hay ninguna cuota,
 // carga precios desde agosto de 2026, genera las cuotas de agosto a noviembre y
 // registra pagos (agosto y septiembre pagadas, octubre con pago parcial, noviembre pendiente).
+// Si ya hay cuotas pero ningún comprobante, carga solo los pagos sobre las cuotas existentes.
 import { estadoSegunComprobantes } from './cuotas.js';
 import { generarCuotasDelPeriodo } from './generacion-cuotas.js';
 
@@ -34,6 +35,15 @@ export function pagoDemo(periodo, total) {
 
   const fecha = `${periodo}-${String(DIA_TRANSFERENCIA_DEMO).padStart(2, '0')}`;
   return { pago: { importe, fecha }, ...estadoSegunComprobantes(total, [importe]) };
+}
+
+/**
+ * Qué carga de ejemplo corresponde: 'todo' si no hay ninguna cuota; 'pagos' si hay cuotas
+ * pero ningún comprobante; null si ya hay comprobantes (no se hace nada).
+ */
+export function accionDemo({ hayCuotas, hayComprobantes }) {
+  if (!hayCuotas) return 'todo';
+  return hayComprobantes ? null : 'pagos';
 }
 
 // ---------- Carga en la base ----------
@@ -73,7 +83,7 @@ async function cargarPrecios(tx) {
   return creados;
 }
 
-// Comprobantes de ejemplo de las cuotas generadas y el estado de cada cuota.
+// Comprobantes de ejemplo de las cuotas de agosto a octubre y el estado de cada cuota.
 async function cargarPagos(tx) {
   const cuotas = await tx.all(
     `SELECT c.id, c.alumno_id, c.periodo, c.total, f.id as factura_id
@@ -106,28 +116,40 @@ async function cargarPagos(tx) {
   return comprobantes;
 }
 
-// Si todavía no hay ninguna cuota, carga los datos de ejemplo en una sola transacción.
-// Devuelve { precios, cuotas, comprobantes } o null si no hizo nada.
+async function estadoActual(db) {
+  return {
+    hayCuotas: Boolean(await db.get('SELECT id FROM cuotas LIMIT 1')),
+    hayComprobantes: Boolean(await db.get('SELECT id FROM comprobantes_pago LIMIT 1'))
+  };
+}
+
+// Carga los datos de ejemplo que correspondan (ver accionDemo) en una sola transacción.
+// Devuelve { accion, precios, cuotas, comprobantes } o null si no hizo nada.
 export async function cargarDatosDemo(db) {
-  if (await db.get('SELECT id FROM cuotas LIMIT 1')) return null;
+  if (!accionDemo(await estadoActual(db))) return null;
 
   const resultado = await db.transaccion(async (tx) => {
-    // Que otra carga o una generación simultánea no se crucen; se vuelve a mirar con el bloqueo tomado.
-    await tx.run('LOCK TABLE cuotas, items_cuota, facturas IN SHARE ROW EXCLUSIVE MODE');
-    if (await tx.get('SELECT id FROM cuotas LIMIT 1')) return null;
+    // Que otra carga, una generación o un comprobante simultáneos no se crucen;
+    // se vuelve a mirar con el bloqueo tomado.
+    await tx.run('LOCK TABLE cuotas, items_cuota, facturas, comprobantes_pago IN SHARE ROW EXCLUSIVE MODE');
+    const accion = accionDemo(await estadoActual(tx));
+    if (!accion) return null;
+    if (accion === 'pagos') return { accion, precios: 0, cuotas: 0, comprobantes: await cargarPagos(tx) };
 
     const precios = await cargarPrecios(tx);
     let cuotas = 0;
     for (const periodo of PERIODOS_DEMO) cuotas += (await generarCuotasDelPeriodo(tx, periodo)).creadas;
     const comprobantes = await cargarPagos(tx);
-    return { precios, cuotas, comprobantes };
+    return { accion, precios, cuotas, comprobantes };
   });
 
-  if (resultado) {
+  if (resultado?.accion === 'todo') {
     console.log(
       `Datos de ejemplo: ${resultado.cuotas} cuota(s) y ${resultado.comprobantes} comprobante(s) creados` +
       ` (${resultado.precios} precio(s) desde el ${FECHA_PRECIOS_DEMO.split('-').reverse().join('/')}).`
     );
+  } else if (resultado) {
+    console.log(`Datos de ejemplo: ${resultado.comprobantes} comprobante(s) creados sobre las cuotas existentes.`);
   }
   return resultado;
 }
